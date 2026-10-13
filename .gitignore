@@ -1,0 +1,12 @@
+# Nuxt
+.nuxt
+.output
+dist
+node_modules
+*.log
+.env
+.DS_Store
+stitch-export
+data/*.sqlite
+data/*.sqlite-*
+data/backups/

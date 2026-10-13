@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+/**
+ * Lumina × Pegasus palette — Coolors
+ * https://coolors.co/ccd5ae-e9edc9-fefae0-faedcd-d4a373
+ *
+ * Tailwind v4: colors live HERE in @theme (not tailwind.config.js).
+ * Use: text-ink · text-muted · bg-cream · bg-sand · bg-sage · bg-mist · bg-terracotta · text-primary
+ */
+@theme {
+  /* ——— Coolors raw tokens ——— */
+  --color-sage: #ccd5ae;
+  --color-mist: #e9edc9;
+  --color-cream: #fefae0;
+  --color-sand: #faedcd;
+  --color-terracotta: #d4a373;
+  --color-ink: #3d3426;
+  --color-muted: #5c5346;
+  --color-ink-soft: rgba(61, 52, 38, 0.45);
+
+  /* ——— Semantic aliases (Material-style names used across the app) ——— */
+  --color-surface: var(--color-cream);
+  --color-surface-dim: var(--color-mist);
+  --color-surface-bright: var(--color-cream);
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #faf6e8;
+  --color-surface-container: #f3efd8;
+  --color-surface-container-high: var(--color-mist);
+  --color-surface-container-highest: var(--color-sage);
+  --color-surface-variant: var(--color-mist);
+  --color-on-surface: #2f2a22;
+  --color-on-surface-variant: var(--color-muted);
+  --color-background: var(--color-cream);
+  --color-on-background: #2f2a22;
+  --color-primary: var(--color-terracotta);
+  --color-on-primary: #ffffff;
+  --color-primary-container: var(--color-sage);
+  --color-on-primary-container: #2f2a22;
+  --color-primary-fixed: var(--color-mist);
+  --color-primary-fixed-dim: var(--color-sage);
+  --color-inverse-primary: var(--color-sand);
+  --color-secondary: #a9845a;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: var(--color-sand);
+  --color-on-secondary-container: #4a3d2e;
+  --color-secondary-fixed: var(--color-sand);
+  --color-secondary-fixed-dim: var(--color-mist);
+  --color-on-secondary-fixed: var(--color-ink);
+  --color-tertiary: #6b705c;
+  --color-outline: #8a8478;
+  --color-outline-variant: #d4ceb8;
+  --color-error: #b3261e;
+
+  /* عناوین فارسی: وزیرمتن وزن بالا */
+  --font-display: "Vazirmatn", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Vazirmatn", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-latin: "Plus Jakarta Sans", "Vazirmatn", system-ui, sans-serif;
+
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2.5rem;
+  --spacing-gutter: 1rem;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 90rem;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    margin: 0;
+    min-width: 0;
+    width: 100%;
+    overflow-x: clip;
+    font-family: var(--font-sans);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  body[data-lang="en"] {
+    font-family: var(--font-latin);
+  }
+
+  img,
+  video,
+  svg,
+  canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  button,
+  a,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+  }
+
+  button,
+  a.rounded-full,
+  a[href],
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    vertical-align: middle;
+    user-select: none;
+    line-height: 1;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  select,
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea {
+    min-height: 2.75rem;
+  }
+}
+
+@layer utilities {
+  .px-page {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 40rem) {
+    .px-page {
+      padding-left: max(clamp(1.25rem, 3vw, 2rem), env(safe-area-inset-left, 0px));
+      padding-right: max(clamp(1.25rem, 3vw, 2rem), env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .px-page {
+      padding-left: max(clamp(2rem, 4vw, 4rem), env(safe-area-inset-left, 0px));
+      padding-right: max(clamp(2rem, 4vw, 4rem), env(safe-area-inset-right, 0px));
+    }
+  }
+
+  @media (min-width: 90rem) {
+    .px-page {
+      padding-left: max(4rem, env(safe-area-inset-left, 0px));
+      padding-right: max(4rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  .container-page {
+    width: 100%;
+    max-width: 87.5rem;
+    margin-inline: auto;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .touch-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-latin {
+    font-family: var(--font-latin);
+  }
+
+  .font-hero {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: 0;
+    word-spacing: normal;
+    line-height: 1.25;
+    font-size: clamp(1.75rem, 1.1rem + 3.8vw, 4.5rem);
+    overflow-wrap: break-word;
+    word-break: break-word;
+    text-wrap: balance;
+  }
+
+  html[lang="en"] .font-hero,
+  body[data-lang="en"] .font-hero {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    font-size: clamp(2.125rem, 1.25rem + 4.5vw, 5rem);
+    overflow-wrap: normal;
+  }
+
+  .font-hero-accent {
+    color: var(--color-primary);
+    font-weight: 800;
+  }
+
+  html[lang="en"] .font-hero-accent,
+  body[data-lang="en"] .font-hero-accent {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .section-title {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.35;
+    font-size: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+    overflow-wrap: break-word;
+    word-break: break-word;
+    text-wrap: balance;
+  }
+
+  html[lang="en"] .section-title,
+  body[data-lang="en"] .section-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    overflow-wrap: normal;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .h-dvh-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Pegasus-like soft section wash */
+  .bg-pegasus-mist {
+    background-color: #e9edc9;
+  }
+
+  .bg-pegasus-sand {
+    background-color: #faedcd;
+  }
+
+  .bg-pegasus-cream {
+    background-color: #fefae0;
+  }
+
+  .bg-pegasus-sage {
+    background-color: #ccd5ae;
+  }
+}

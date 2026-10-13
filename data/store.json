@@ -1,0 +1,317 @@
+{
+  "bookings": [
+    {
+      "id": "a577533e-d84b-4d0f-92a5-28e11fcfee0c",
+      "code": "LM-310357",
+      "branch": "شعبه مرکزی تهران (پنت‌هاوس زعفرانیه)",
+      "service": "هایفوتراپی سه‌بعدی و لیفت SMAS",
+      "doctor": "دکتر النا رستمی (بورد درماتولوژی آمریکا)",
+      "visitType": "clinic",
+      "when": "فردا 1 — 09:15",
+      "date": "2026-10-01",
+      "name": "الهه وکیلی",
+      "phone": "09368305628",
+      "notes": "",
+      "total": 950000,
+      "status": "confirmed",
+      "createdAt": "2026-09-30T09:27:01.759Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "hifu",
+      "titleFa": "هایفوتراپی سه‌بعدی و لیفت SMAS",
+      "titleEn": "3D HIFU & SMAS lift",
+      "duration": 75,
+      "price": 18500000,
+      "location": "clinic",
+      "color": "#8a4853",
+      "active": true
+    },
+    {
+      "id": "profhilo",
+      "titleFa": "مزوژل جوانساز (پروفایلو / جالپرو)",
+      "titleEn": "Profhilo / Jalupro mesogel",
+      "duration": 45,
+      "price": 12000000,
+      "location": "clinic",
+      "color": "#c47a5a",
+      "active": true
+    },
+    {
+      "id": "filler",
+      "titleFa": "تزریق فیلر طبیعی و کانتورینگ لب",
+      "titleEn": "Natural filler & lip contour",
+      "duration": 60,
+      "price": 22000000,
+      "location": "clinic",
+      "color": "#7a5c8a",
+      "active": true
+    },
+    {
+      "id": "consult",
+      "titleFa": "ویزیت تخصصی پزشک پوست و مو",
+      "titleEn": "Dermatology specialist consult",
+      "duration": 30,
+      "price": 2500000,
+      "location": "online",
+      "color": "#4f7d6a",
+      "active": true
+    },
+    {
+      "id": "bridal",
+      "titleFa": "پکیج دوره‌ای عروس و VIP Glow",
+      "titleEn": "Bridal & VIP Glow package",
+      "duration": 90,
+      "price": 29900000,
+      "location": "clinic",
+      "color": "#b76e79",
+      "active": true
+    }
+  ],
+  "doctors": [
+    {
+      "id": "rostami",
+      "nameFa": "دکتر النا رستمی",
+      "nameEn": "Dr. Elena Rostami",
+      "roleFa": "درماتولوژی",
+      "roleEn": "Dermatology",
+      "active": true
+    },
+    {
+      "id": "bahrami",
+      "nameFa": "دکتر سامان بهرامی",
+      "nameEn": "Dr. Saman Bahrami",
+      "roleFa": "کانتورینگ",
+      "roleEn": "Contouring",
+      "active": true
+    },
+    {
+      "id": "kaviani",
+      "nameFa": "دکتر نیکی کاویانی",
+      "nameEn": "Dr. Niki Kaviani",
+      "roleFa": "درماتوسرجری",
+      "roleEn": "Dermatosurgery",
+      "active": true
+    }
+  ],
+  "customers": [
+    {
+      "id": "b82f72f8-a895-4f50-8f21-7922e3303cfe",
+      "name": "الهه وکیلی",
+      "phone": "09368305628",
+      "fileNo": "LM-310357",
+      "lastVisit": "2026-09-30",
+      "tag": ""
+    },
+    {
+      "id": "c-elham",
+      "name": "الهام نوری",
+      "phone": "09121234567",
+      "fileNo": "LM-7703",
+      "lastVisit": "2026-09-30",
+      "tag": "allergy"
+    },
+    {
+      "id": "c-sahar",
+      "name": "سحر داوودی",
+      "phone": "09129876543",
+      "fileNo": "LM-4412",
+      "lastVisit": "2026-09-30",
+      "tag": "vip"
+    }
+  ],
+  "calendarSlots": [
+    {
+      "id": "1",
+      "staffId": "rostami",
+      "startHour": 9,
+      "startMin": 0,
+      "durationMin": 60,
+      "patientFa": "سحر داوودی",
+      "patientEn": "Sahar Davoudi",
+      "serviceFa": "هایفوتراپی ۳ بعدی صورت و گردن",
+      "serviceEn": "3D HIFU face & neck",
+      "status": "completed",
+      "price": 18500000,
+      "unitFa": "یونیت ۲",
+      "unitEn": "Unit 2",
+      "vip": true,
+      "fileNo": "LM-4412",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "2",
+      "staffId": "rostami",
+      "startHour": 10,
+      "startMin": 15,
+      "durationMin": 45,
+      "patientFa": "مینا کریمی",
+      "patientEn": "Mina Karimi",
+      "serviceFa": "مزوژل پروفایلو",
+      "serviceEn": "Profhilo mesogel",
+      "status": "paid",
+      "price": 12000000,
+      "fileNo": "LM-5521",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "b1",
+      "staffId": "rostami",
+      "startHour": 11,
+      "startMin": 0,
+      "durationMin": 30,
+      "patientFa": "",
+      "patientEn": "",
+      "serviceFa": "بافر استراحت پزشک",
+      "serviceEn": "Doctor rest buffer",
+      "status": "buffer",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "3",
+      "staffId": "rostami",
+      "startHour": 11,
+      "startMin": 30,
+      "durationMin": 60,
+      "patientFa": "الهام نوری",
+      "patientEn": "Elham Nouri",
+      "serviceFa": "ویزیت تخصصی پوست",
+      "serviceEn": "Dermatology consult",
+      "status": "progress",
+      "unitFa": "یونیت ۱",
+      "unitEn": "Unit 1",
+      "fileNo": "LM-7703",
+      "balance": 17000000,
+      "allergyFa": "حساسیت به لیدوکائین موضعی",
+      "allergyEn": "Allergy to topical lidocaine",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "4",
+      "staffId": "bahrami",
+      "startHour": 9,
+      "startMin": 30,
+      "durationMin": 75,
+      "patientFa": "نیلوفر احمدی",
+      "patientEn": "Niloufar Ahmadi",
+      "serviceFa": "کانتورینگ لب و گونه",
+      "serviceEn": "Lip & cheek contour",
+      "status": "confirmed",
+      "price": 22000000,
+      "fileNo": "LM-8830",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "5",
+      "staffId": "bahrami",
+      "startHour": 11,
+      "startMin": 0,
+      "durationMin": 45,
+      "patientFa": "رضا مرادی",
+      "patientEn": "Reza Moradi",
+      "serviceFa": "مشاوره آنلاین قبل درمان",
+      "serviceEn": "Pre-treatment video consult",
+      "status": "next",
+      "meet": true,
+      "fileNo": "LM-9911",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "6",
+      "staffId": "kaviani",
+      "startHour": 10,
+      "startMin": 0,
+      "durationMin": 90,
+      "patientFa": "مریم حسینی",
+      "patientEn": "Maryam Hosseini",
+      "serviceFa": "درماتوسرجری خال",
+      "serviceEn": "Mole dermatosurgery",
+      "status": "confirmed",
+      "unitFa": "یونیت ۳",
+      "unitEn": "Unit 3",
+      "price": 9500000,
+      "fileNo": "LM-2204",
+      "date": "2026-09-30"
+    },
+    {
+      "id": "7",
+      "staffId": "kaviani",
+      "startHour": 13,
+      "startMin": 0,
+      "durationMin": 45,
+      "patientFa": "سارا محمدی",
+      "patientEn": "Sara Mohammadi",
+      "serviceFa": "فیشیال VIP",
+      "serviceEn": "VIP facial",
+      "status": "confirmed",
+      "fileNo": "LM-3340",
+      "date": "2026-09-30"
+    }
+  ],
+  "availability": {
+    "timezone": "Asia/Tehran",
+    "name": "Working hours (default)",
+    "nameFa": "ساعات کاری (پیش‌فرض)",
+    "days": [
+      {
+        "ranges": [
+          {
+            "start": "10:00",
+            "end": "14:00"
+          }
+        ]
+      },
+      {
+        "ranges": [
+          {
+            "start": "09:00",
+            "end": "21:00"
+          }
+        ]
+      },
+      {
+        "ranges": [
+          {
+            "start": "09:00",
+            "end": "21:00"
+          }
+        ]
+      },
+      {
+        "ranges": [
+          {
+            "start": "09:00",
+            "end": "21:00"
+          }
+        ]
+      },
+      {
+        "ranges": [
+          {
+            "start": "09:00",
+            "end": "21:00"
+          }
+        ]
+      },
+      {
+        "ranges": []
+      },
+      {
+        "ranges": [
+          {
+            "start": "09:00",
+            "end": "21:00"
+          }
+        ]
+      }
+    ],
+    "overrides": []
+  },
+  "stats": {
+    "revenueToday": 43450000,
+    "appointmentsToday": 19,
+    "activeRooms": 4,
+    "weekAppointments": 65
+  }
+}
