@@ -15,7 +15,15 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  modules: ['@vueuse/nuxt'],
+  modules: ['@vueuse/nuxt', '@nuxt/icon'],
+   icon: {
+    customCollections: [
+      {
+        prefix: 'my-icons',
+        dir: './src/assets/icons'
+      }
+    ]
+  },
 
   vite: {
     plugins: [tailwindcss()],

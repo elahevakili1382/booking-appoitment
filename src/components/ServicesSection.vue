@@ -68,8 +68,19 @@ const services = [
           </div>
         </div>
 
-        <!-- عکس قرصی -->
-        <img :src="s.img" :alt="s.title" class="aspect-[2/1] w-full rounded-full object-cover" loading="lazy" />
+        <!-- عکس قرصی + هاور فید -->
+        <figure class="group relative aspect-[2/1] w-full overflow-hidden rounded-full">
+          <img
+            :src="s.img"
+            :alt="s.title"
+            class="h-full w-full object-cover motion-safe:transition-[transform,opacity,filter] motion-safe:duration-700 motion-safe:ease-out group-hover:opacity-80 motion-safe:group-hover:scale-105"
+            loading="lazy"
+          />
+          <span
+            class="pointer-events-none absolute inset-0 bg-[#d4a373]/25 opacity-0 motion-safe:transition-opacity motion-safe:duration-700 group-hover:opacity-100"
+            aria-hidden="true"
+          />
+        </figure>
       </article>
     </div>
   </section>

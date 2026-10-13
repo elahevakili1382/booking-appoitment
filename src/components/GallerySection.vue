@@ -1,67 +1,73 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { assets } from '../data/assets'
-import { homeEn, homeFa } from '../data/homeContent'
-import { useLanguage } from '../i18n/useLanguage'
-
-const { t, locale } = useLanguage()
-const h = computed(() => (locale.value === 'fa' ? homeFa : homeEn))
-
-const notes = computed(() =>
-  locale.value === 'fa'
-    ? 'قرمزی · تورم خفیف · خشکی موقت: چند روز'
-    : 'Redness · mild swelling · temporary dryness: a few days',
-)
-</script>
-
 <template>
-  <section id="gallery" class="w-full bg-pegasus-mist py-14 sm:py-20">
-    <div class="mx-auto max-w-[1400px] px-page">
-      <div v-fade-up class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div class="max-w-2xl">
-          <p class="font-latin text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{{ h.cases.eyebrow }}</p>
-          <h2 class="mt-2 font-hero text-[clamp(1.6rem,3.5vw,2.4rem)]">{{ h.cases.title }}</h2>
-          <p class="mt-3 text-[15px] leading-7 text-on-surface-variant">{{ h.cases.lead }}</p>
+  <section class="max-w-7xl mx-auto py-16 px-5 text-center font-sans text-[#1a2b4b]">
+
+    <!-- بخش هدر -->
+    <div class="mb-16">
+      <h2
+        class="text-xl tracking-[0.2em] relative inline-block mb-2.5 after:content-[''] after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:w-10 after:h-px after:bg-[#1a2b4b]">
+        منو
+      </h2>
+      <h3 class="text-3xl font-medium mt-8 mb-5">چه مشکلی دارید؟</h3>
+      <p class="text-[0.95rem] leading-relaxed text-slate-600 mb-10">
+        ما کلینیک پوست و زیبایی هستیم و<br />
+        منوهای متنوعی متناسب با مشکلات پوست و بدن شما ارائه می‌دهیم.
+      </p>
+
+      <!-- دکمه‌ها -->
+      <div class="flex flex-col md:flex-row justify-center gap-5">
+        <button
+          class="bg-transparent border border-slate-300 rounded-full py-3 px-8 text-[0.95rem] text-[#1a2b4b] cursor-pointer flex items-center justify-between md:justify-center gap-4 transition-all duration-300 hover:bg-slate-50 hover:border-[#1a2b4b] w-full max-w-[300px] mx-auto md:mx-0 md:w-auto">
+          مشاهده لیست خدمات <span class="text-[0.7rem] text-slate-400">◀</span>
+        </button>
+        <button
+          class="bg-transparent border border-slate-300 rounded-full py-3 px-8 text-[0.95rem] text-[#1a2b4b] cursor-pointer flex items-center justify-between md:justify-center gap-4 transition-all duration-300 hover:bg-slate-50 hover:border-[#1a2b4b] w-full max-w-[300px] mx-auto md:mx-0 md:w-auto">
+          جستجو بر اساس مشکل <span class="text-[0.7rem] text-slate-400">◀</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- بخش گرید آیکون‌ها (این بخش عالیه، دست نزن) -->
+    <!-- بخش گرید آیکون‌ها -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-5 gap-y-10 justify-items-center">
+
+      <div v-for="item in menuItems" :key="item.id"
+        class="group flex flex-col items-center cursor-pointer transition-transform duration-300 hover:-translate-y-1.5">
+
+        <!-- دایره آبی روشن -->
+        <div
+          class="w-[100px] h-[100px] md:w-[130px] md:h-[130px] bg-[#f4f8fc] rounded-full flex justify-center items-center mb-5 transition-shadow duration-300 group-hover:shadow-lg">
+
+          <!-- ✅ سایز آیکون بزرگ‌تر شد (استفاده از ۵۰ درصد سایز دایره) -->
+          <!-- برای آیکون‌های بزرگتر -->
+          <Icon :name="item.icon" class="w-[65px] h-[65px] md:w-[85px] md:h-[85px] text-[#1a2b4b]" />
         </div>
-        <a
-          href="https://instagram.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex h-11 shrink-0 items-center rounded-full border border-outline-variant/40 px-5 text-[13px] font-bold text-primary"
-        >
-          {{ h.cases.instagram }}
-        </a>
+
+        <p class="text-sm text-[#1a2b4b] font-medium m-0">{{ item.title }}</p>
       </div>
 
-      <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <article
-          v-for="(item, i) in t.gallery"
-          :key="item.title"
-          v-fade-up
-          class="overflow-hidden rounded-2xl bg-pegasus-cream"
-        >
-          <div class="relative flex h-48 overflow-hidden sm:h-56">
-            <div class="relative h-full w-1/2">
-              <img :src="assets.gallery[i].before" alt="" class="h-full w-full object-cover" loading="lazy" />
-              <span class="absolute bottom-2 end-2 rounded bg-[#3d3426]/75 px-2 py-0.5 text-[11px] text-[#fefae0]">{{ t.before }}</span>
-            </div>
-            <div class="relative h-full w-1/2">
-              <img :src="assets.gallery[i].after" alt="" class="h-full w-full object-cover" loading="lazy" />
-              <span class="absolute bottom-2 start-2 rounded bg-primary px-2 py-0.5 text-[11px] text-on-primary">{{ item.afterLabel }}</span>
-            </div>
-          </div>
-          <div class="space-y-3 p-5 text-[13px]">
-            <div class="flex justify-between gap-2">
-              <h4 class="text-[16px] font-semibold">{{ item.title }}</h4>
-              <span class="font-latin text-[11px] font-bold text-primary">No.{{ String(i + 1).padStart(2, '0') }}</span>
-            </div>
-            <p><span class="font-semibold">{{ h.cases.name }}:</span> {{ item.title }}</p>
-            <p class="leading-6 text-on-surface-variant"><span class="font-semibold text-on-surface">{{ h.cases.desc }}:</span> {{ item.desc }}</p>
-            <p class="leading-6 text-on-surface-variant"><span class="font-semibold text-on-surface">{{ h.cases.risk }}:</span> {{ notes }}</p>
-            <p class="font-bold text-primary">{{ h.cases.price }} {{ t.services[i]?.price ?? '—' }} {{ t.toman }}</p>
-          </div>
-        </article>
-      </div>
     </div>
   </section>
 </template>
+
+<script setup>
+
+// ✅ اینجا اسم فایل‌های SVG خودت رو برای هر آیتم به صورت مجزا بنویس
+const menuItems = [
+  { id: 1, title: 'لیفت و کوچک‌کردن صورت', icon: 'my-icons:parts-icn01' },
+  { id: 2, title: 'دور چشم', icon: 'my-icons:parts-icn03' },
+  { id: 3, title: 'فرم بدن', icon: 'my-icons:parts-icn06' },
+  { id: 4, title: 'بینی', icon: 'my-icons:parts-icn07' },
+  { id: 5, title: 'تزریق مواد', icon: 'my-icons:parts-icn08' },
+  { id: 6, title: 'سینه', icon: 'my-icons:parts-icn09' },
+  { id: 7, title: 'لک و تیرگی', icon: 'my-icons:parts-icn011' },
+  { id: 8, title: 'شادابی و قرمزی', icon: 'my-icons:parts-icn012' },
+  { id: 9, title: 'منافذ و جوش', icon: 'my-icons:parts-icn14' },
+  { id: 10, title: 'جای جوش و فرورفتگی', icon: 'my-icons:parts-icn13' },
+  { id: 11, title: 'چین و چروک', icon: 'my-icons:parts-icn15' },
+  { id: 12, title: 'افتادگی پوست', icon: 'my-icons:parts-icn16' },
+  { id: 13, title: 'لیزر موهای زائد', icon: 'my-icons:parts-icn17' },
+  { id: 14, title: 'آرت‌میک و تتو', icon: 'my-icons:parts-icn18' },
+  { id: 15, title: 'مراقبت پوستی', icon: 'my-icons:parts-icn15' }
+];
+
+</script>
