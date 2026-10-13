@@ -1,6 +1,6 @@
 # Lumina Clinic (Vue)
 
-Landing site for **Lumina Clinic** — bilingual (FA/EN), built with Vue 3 from the Google Stitch *Aura Lumina* design.
+Landing site for **Lumina Clinic** — bilingual (FA/EN), built with Vue 3 
 
 ## Run
 
