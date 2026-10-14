@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
+   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
   srcDir: 'src',
   serverDir: 'server',

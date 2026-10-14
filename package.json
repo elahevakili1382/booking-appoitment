@@ -26,9 +26,8 @@
     "gsap": "^3.15.0",
     "jalaliday": "^3.1.1",
     "motion-v": "^2.5.1",
-    "nuxt": "^3.21.11",
+    "nuxt": "^4.6.1",
     "vue": "^3.5.43",
-    "vue-router": "^4.6.4",
     "vue3-apexcharts": "^1.11.1",
     "vue3-persian-datetime-picker": "^1.2.2"
   },
@@ -39,5 +38,9 @@
     "@types/better-sqlite3": "^9.6.0",
     "tailwindcss": "^4.1.13",
     "typescript": "~5.9.2"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "esbuild@0.28.2": true
   }
 }

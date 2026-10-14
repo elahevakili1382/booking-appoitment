@@ -10,7 +10,7 @@ const buttons = [
   <section id="first-visit" class="relative w-full px-page py-16 md:py-24">
     <div class="mx-auto w-full max-w-[1200px]">
       <!-- عکس عریض با گوشه‌های گرد -->
-      <img src="/first-visit/first-visit.jpg" alt="فضای آرام کلینیک لومینا"
+      <img src="/public/first-visit/first-visit.jpg" alt="فضای آرام کلینیک لومینا"
         class="aspect-[16/9] w-full rounded-[2rem] object-cover md:aspect-[3/1] md:rounded-[3rem]" loading="lazy" />
 
       <!-- ردیف سه‌ستونه -->
