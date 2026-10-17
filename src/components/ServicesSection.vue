@@ -58,28 +58,24 @@ const services = [
             <a href="#"
               class="inline-flex items-center gap-2 rounded-full border border-[#d4a373]/60 px-6 py-3 text-[13px] text-ink transition-colors duration-300 hover:bg-[#d4a373]/10">
               جزئیات بیشتر
-              <span class="material-symbols-outlined text-[16px] ltr:rotate-180">chevron_left</span>
+              <Icon name="ph:caret-left" />
             </a>
             <a href="#"
               class="inline-flex items-center gap-2 rounded-full border border-[#d4a373]/60 px-6 py-3 text-[13px] text-ink transition-colors duration-300 hover:bg-[#d4a373]/10">
               مشاهده‌ی نمونه نتایج
-              <span class="material-symbols-outlined text-[16px] ltr:rotate-180">chevron_left</span>
+              <Icon name="ph:caret-left" />
             </a>
           </div>
         </div>
 
         <!-- عکس قرصی + هاور فید -->
         <figure class="group relative aspect-[2/1] w-full overflow-hidden rounded-full">
-          <img
-            :src="s.img"
-            :alt="s.title"
+          <img :src="s.img" :alt="s.title"
             class="h-full w-full object-cover motion-safe:transition-[transform,opacity,filter] motion-safe:duration-700 motion-safe:ease-out group-hover:opacity-80 motion-safe:group-hover:scale-105"
-            loading="lazy"
-          />
+            loading="lazy" />
           <span
             class="pointer-events-none absolute inset-0 bg-[#d4a373]/25 opacity-0 motion-safe:transition-opacity motion-safe:duration-700 group-hover:opacity-100"
-            aria-hidden="true"
-          />
+            aria-hidden="true" />
         </figure>
       </article>
     </div>

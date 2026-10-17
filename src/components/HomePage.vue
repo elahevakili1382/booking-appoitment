@@ -1,17 +1,17 @@
 <script setup lang="ts">
-
-import CloudyShader from './CloudyShader.vue'
-import HeroSection from './HeroSection.vue'
-import HomeNews from './HomeNews.vue'
-import HomeMessage from './HomeMessage.vue'
-import MessageEllipse from './MessageEllipse.vue'
-import HorizontalJourney from './HorizontalJourney.vue'
-import ReasonStory from './ReasonStory.vue'
-import FirstVisit from './FirstVisit.vue'
-import ServicesSection from './ServicesSection.vue'
-import GallerySection from './GallerySection.vue'
-import HomeBlog from './HomeBlog.vue'
-import FinalCta from './FinalCta.vue'
+useSmoothScroll()
+// import CloudyShader from './CloudyShader.vue'
+// import HeroSection from './HeroSection.vue'
+// import HomeNews from './HomeNews.vue'
+// import HomeMessage from './HomeMessage.vue'
+// import MessageEllipse from './MessageEllipse.vue'
+// import HorizontalJourney from './HorizontalJourney.vue'
+// import ReasonStory from './ReasonStory.vue'
+// import FirstVisit from './FirstVisit.vue'
+// import ServicesSection from './ServicesSection.vue'
+// import GallerySection from './GallerySection.vue'
+// import HomeBlog from './HomeBlog.vue'
+// import FinalCta from './FinalCta.vue'
 </script>
 
 <template>

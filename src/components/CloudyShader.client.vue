@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+// import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -160,7 +160,7 @@ onMounted(() => {
     draw()
   } else {
     loop()
-    io = new IntersectionObserver(([e]) => (visible = e.isIntersecting))
+    io = new IntersectionObserver(([e]) => (visible = e?.isIntersecting ?? false))
     io.observe(el)
   }
 })

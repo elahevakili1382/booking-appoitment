@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+// import { computed } from 'vue'
 import { useLanguage } from '../i18n/useLanguage'
 
 const { t, locale } = useLanguage()

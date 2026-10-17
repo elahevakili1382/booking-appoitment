@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+// import { computed } from 'vue'
 import CarouselSqueeze, { type SqueezeSlide } from './ui/CarouselSqueeze.vue'
 import { assets } from '../data/assets'
 import { homeEn, homeFa } from '../data/homeContent'
@@ -61,18 +61,8 @@ const slides = computed<SqueezeSlide[]>(() => {
         <p class="mt-3 text-[15px] leading-7 text-on-surface-variant">{{ h.recommend.lead }}</p>
       </div>
 
-      <CarouselSqueeze
-        :slides="slides"
-        :height="300"
-        :gap="14"
-        :radius="12"
-        :duration="900"
-        :hover-grow="true"
-        :controls="true"
-        :label="h.recommend.eyebrow"
-        accent="var(--color-primary)"
-        accent-foreground="#ffffff"
-      />
+      <CarouselSqueeze :slides="slides" :height="300" :gap="14" :radius="12" :duration="900" :hover-grow="true"
+        :controls="true" :label="h.recommend.eyebrow" accent="var(--color-primary)" accent-foreground="#ffffff" />
     </div>
   </section>
 </template>

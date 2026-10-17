@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+// import { computed, ref, watch } from 'vue'
 import { useLanguage } from '../i18n/useLanguage'
-import { useAvailability } from '../composables/useAvailability'
+// import { useAvailability } from '../composables/useAvailability'
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -81,13 +81,13 @@ function saveToast() {
 }
 
 function toggleDay(jsDay: number) {
-  if (schedule.value.days[jsDay].ranges.length) setDayUnavailable(jsDay)
+  if (schedule.value.days[jsDay]?.ranges.length) setDayUnavailable(jsDay)
   else enableDay(jsDay)
   saveToast()
 }
 
 function onAddRange(jsDay: number) {
-  if (!schedule.value.days[jsDay].ranges.length) enableDay(jsDay)
+  if (!schedule.value.days[jsDay]?.ranges.length) enableDay(jsDay)
   else addRange(jsDay)
   saveToast()
 }
@@ -155,97 +155,69 @@ const adminNav = computed(() => [
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      data-backdrop="1"
+    <div v-if="open" data-backdrop="1"
       class="fixed inset-0 z-[80] flex items-end justify-center bg-on-surface/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
-      @click="onBackdrop"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        :aria-label="t.availModalTitle"
+      @click="onBackdrop">
+      <div role="dialog" aria-modal="true" :aria-label="t.availModalTitle"
         class="relative flex max-h-[min(92dvh,52rem)] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
-        @click.stop
-      >
+        @click.stop>
         <!-- Header -->
         <div class="flex items-start justify-between gap-3 border-b border-outline-variant/20 px-4 py-3 sm:px-5">
           <div>
             <h2 class="text-[18px] font-bold text-on-surface sm:text-[20px]">{{ t.availModalTitle }}</h2>
             <div class="mt-2 flex gap-1">
-              <button
-                v-for="tab in ([
-                  ['calendar', t.availTabCalendar],
-                  ['availability', t.availTabAvailability],
-                  ['advanced', t.availTabAdvanced],
-                ] as const)"
-                :key="tab[0]"
-                type="button"
-                class="cursor-pointer border-b-2 px-2.5 py-1.5 text-[12px] font-semibold sm:text-[13px]"
-                :class="
-                  modalTab === tab[0]
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                "
-                @click="modalTab = tab[0]"
-              >
+              <button v-for="tab in ([
+                ['calendar', t.availTabCalendar],
+                ['availability', t.availTabAvailability],
+                ['advanced', t.availTabAdvanced],
+              ] as const)" :key="tab[0]" type="button"
+                class="cursor-pointer border-b-2 px-2.5 py-1.5 text-[12px] font-semibold sm:text-[13px]" :class="modalTab === tab[0]
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                  " @click="modalTab = tab[0]">
                 {{ tab[1] }}
               </button>
             </div>
           </div>
-          <button
-            type="button"
+          <button type="button"
             class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"
-            :aria-label="t.availClose"
-            @click="close"
-          >
-            <span class="material-symbols-outlined">close</span>
+            :aria-label="t.availClose" @click="close">
+            <Icon name="ph:x" />
           </button>
         </div>
 
         <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
           <!-- Side nav (Calendly-like) -->
-          <aside class="hidden w-52 shrink-0 overflow-y-auto border-e border-outline-variant/20 bg-[#faf7f7] p-3 lg:block">
+          <aside
+            class="hidden w-52 shrink-0 overflow-y-auto border-e border-outline-variant/20 bg-[#faf7f7] p-3 lg:block">
             <p class="mb-1 px-2 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
               {{ t.availMyAccount }}
             </p>
-            <button
-              v-for="item in accountNav"
-              :key="item.id"
-              type="button"
+            <button v-for="item in accountNav" :key="item.id" type="button"
               class="mb-0.5 flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-start text-[12px] font-semibold"
               :class="sideNav === item.id ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-white'"
-              @click="sideNav = item.id; modalTab = item.id === 'calendar' ? 'availability' : modalTab"
-            >
-              <span class="material-symbols-outlined text-[18px]">{{ item.icon }}</span>
+              @click="sideNav = item.id; modalTab = item.id === 'calendar' ? 'availability' : modalTab">
+              <Icon name="ph:{{ item.icon }}" />
               {{ item.label }}
             </button>
 
             <p class="mb-1 mt-4 px-2 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
               {{ t.availFeatures }}
             </p>
-            <button
-              v-for="item in featureNav"
-              :key="item.id"
-              type="button"
+            <button v-for="item in featureNav" :key="item.id" type="button"
               class="mb-0.5 flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-start text-[12px] font-semibold text-on-surface-variant hover:bg-white"
-              @click="sideNav = item.id"
-            >
-              <span class="material-symbols-outlined text-[18px]">{{ item.icon }}</span>
+              @click="sideNav = item.id">
+              <Icon name="ph:{{ item.icon }}" />
               {{ item.label }}
             </button>
 
             <p class="mb-1 mt-4 px-2 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
               {{ t.availAdmin }}
             </p>
-            <button
-              v-for="item in adminNav"
-              :key="item.id"
-              type="button"
+            <button v-for="item in adminNav" :key="item.id" type="button"
               class="mb-0.5 flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-start text-[12px] font-semibold text-on-surface-variant hover:bg-white"
-              @click="sideNav = item.id"
-            >
-              <span class="material-symbols-outlined text-[18px]">{{ item.icon }}</span>
+              @click="sideNav = item.id">
+              <Icon name="ph:{{ item.icon }}" />
               {{ item.label }}
             </button>
           </aside>
@@ -256,9 +228,8 @@ const adminNav = computed(() => [
               <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div
-                    class="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-[13px] font-semibold"
-                  >
-                    <span class="material-symbols-outlined text-[18px] text-primary">schedule</span>
+                    class="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-[13px] font-semibold">
+                    <Icon name="ph:clock" />
                     {{ locale === 'fa' ? schedule.nameFa : schedule.name }}
                   </div>
                   <p class="mt-2 text-[12px] text-on-surface-variant">
@@ -268,20 +239,14 @@ const adminNav = computed(() => [
                   </p>
                 </div>
                 <div class="flex items-center gap-1 rounded-full bg-surface-container-low p-0.5">
-                  <button
-                    type="button"
-                    class="min-h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold"
+                  <button type="button" class="min-h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold"
                     :class="viewMode === 'list' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant'"
-                    @click="viewMode = 'list'"
-                  >
+                    @click="viewMode = 'list'">
                     {{ t.availListView }}
                   </button>
-                  <button
-                    type="button"
-                    class="min-h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold"
+                  <button type="button" class="min-h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold"
                     :class="viewMode === 'calendar' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant'"
-                    @click="viewMode = 'calendar'"
-                  >
+                    @click="viewMode = 'calendar'">
                     {{ t.availCalendarView }}
                   </button>
                 </div>
@@ -292,55 +257,37 @@ const adminNav = computed(() => [
                 <div>
                   <h3 class="mb-3 text-[14px] font-bold">{{ t.availWeeklyHours }}</h3>
                   <div class="space-y-2">
-                    <div
-                      v-for="jsDay in dayOrder"
-                      :key="jsDay"
-                      class="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-2.5 sm:p-3"
-                    >
+                    <div v-for="jsDay in dayOrder" :key="jsDay"
+                      class="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-2.5 sm:p-3">
                       <div class="flex flex-wrap items-start gap-2">
-                        <button
-                          type="button"
+                        <button type="button"
                           class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[12px] font-bold"
-                          :class="
-                            schedule.days[jsDay].ranges.length
-                              ? 'bg-primary text-on-primary'
-                              : 'bg-surface-container-high text-on-surface-variant'
-                          "
-                          :title="labelForJsDay(jsDay)"
-                          @click="toggleDay(jsDay)"
-                        >
+                          :class="schedule.days[jsDay]?.ranges.length
+                            ? 'bg-primary text-on-primary'
+                            : 'bg-surface-container-high text-on-surface-variant'
+                            " :title="labelForJsDay(jsDay)" @click="toggleDay(jsDay)">
                           {{ shortForJsDay(jsDay) }}
                         </button>
 
                         <div class="min-w-0 flex-1 space-y-2">
                           <p class="text-[12px] font-semibold text-on-surface sm:hidden">{{ labelForJsDay(jsDay) }}</p>
 
-                          <template v-if="schedule.days[jsDay].ranges.length">
-                            <div
-                              v-for="(range, ri) in schedule.days[jsDay].ranges"
-                              :key="ri"
-                              class="flex flex-wrap items-center gap-1.5"
-                              dir="ltr"
-                            >
-                              <input
-                                type="time"
+                          <template v-if="schedule.days[jsDay]?.ranges.length">
+                            <div v-for="(range, ri) in schedule.days[jsDay].ranges" :key="ri"
+                              class="flex flex-wrap items-center gap-1.5" dir="ltr">
+                              <input type="time"
                                 class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
                                 :value="range.start"
-                                @change="onUpdateRange(jsDay, ri, 'start', ($event.target as HTMLInputElement).value)"
-                              />
+                                @change="onUpdateRange(jsDay, ri, 'start', ($event.target as HTMLInputElement).value)" />
                               <span class="text-on-surface-variant">–</span>
-                              <input
-                                type="time"
+                              <input type="time"
                                 class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
                                 :value="range.end"
-                                @change="onUpdateRange(jsDay, ri, 'end', ($event.target as HTMLInputElement).value)"
-                              />
-                              <button
-                                type="button"
+                                @change="onUpdateRange(jsDay, ri, 'end', ($event.target as HTMLInputElement).value)" />
+                              <button type="button"
                                 class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container"
-                                @click="onRemoveRange(jsDay, ri)"
-                              >
-                                <span class="material-symbols-outlined text-[18px]">close</span>
+                                @click="onRemoveRange(jsDay, ri)">
+                                <Icon name="ph:x" />
                               </button>
                             </div>
                           </template>
@@ -348,21 +295,15 @@ const adminNav = computed(() => [
                         </div>
 
                         <div class="flex shrink-0 gap-0.5">
-                          <button
-                            type="button"
+                          <button type="button"
                             class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container"
-                            :title="t.availAddHours"
-                            @click="onAddRange(jsDay)"
-                          >
-                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            :title="t.availAddHours" @click="onAddRange(jsDay)">
+                            <Icon name="ph:plus" />
                           </button>
-                          <button
-                            type="button"
+                          <button type="button"
                             class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container"
-                            :title="t.availCopyToDays"
-                            @click="onCopy(jsDay)"
-                          >
-                            <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                            :title="t.availCopyToDays" @click="onCopy(jsDay)">
+                            <Icon name="ph:content_copy" />
                           </button>
                         </div>
                       </div>
@@ -373,9 +314,7 @@ const adminNav = computed(() => [
                     <span class="text-on-surface-variant">{{ t.availTimezone }}</span>
                     <select
                       class="h-9 min-w-0 flex-1 cursor-pointer rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
-                      :value="schedule.timezone"
-                      @change="onTimezone"
-                    >
+                      :value="schedule.timezone" @change="onTimezone">
                       <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                     </select>
                   </div>
@@ -386,57 +325,44 @@ const adminNav = computed(() => [
                   <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="text-[14px] font-bold">{{ t.availDateSpecific }}</h3>
                     <div class="flex items-center gap-2">
-                      <input
-                        v-model="newOverrideDate"
-                        type="date"
-                        class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
-                      />
-                      <button
-                        type="button"
+                      <input v-model="newOverrideDate" type="date"
+                        class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]" />
+                      <button type="button"
                         class="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-full bg-primary px-3 text-[12px] font-bold text-on-primary"
-                        @click="onAddOverride"
-                      >
-                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        @click="onAddOverride">
+                        <Icon name="ph:plus" />
                         {{ t.availAddHours }}
                       </button>
                     </div>
                   </div>
 
-                  <div v-if="!schedule.overrides.length" class="rounded-xl border border-dashed border-outline-variant/40 p-6 text-center text-[12px] text-on-surface-variant">
+                  <div v-if="!schedule.overrides.length"
+                    class="rounded-xl border border-dashed border-outline-variant/40 p-6 text-center text-[12px] text-on-surface-variant">
                     —
                   </div>
 
                   <div class="space-y-2">
-                    <div
-                      v-for="o in schedule.overrides"
-                      :key="o.date"
-                      class="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-3"
-                    >
+                    <div v-for="o in schedule.overrides" :key="o.date"
+                      class="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-3">
                       <div class="mb-2 flex items-center justify-between gap-2">
                         <span class="font-latin text-[13px] font-bold">{{ o.date }}</span>
-                        <button
-                          type="button"
+                        <button type="button"
                           class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container"
-                          @click="onRemoveOverride(o.date)"
-                        >
-                          <span class="material-symbols-outlined text-[18px]">close</span>
+                          @click="onRemoveOverride(o.date)">
+                          <Icon name="ph:x" />
                         </button>
                       </div>
                       <div v-if="o.ranges.length" class="space-y-2" dir="ltr">
                         <div v-for="(r, ri) in o.ranges" :key="ri" class="flex flex-wrap items-center gap-1.5">
-                          <input
-                            type="time"
+                          <input type="time"
                             class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
                             :value="r.start"
-                            @change="onUpdateOverride(o.date, ri, 'start', ($event.target as HTMLInputElement).value)"
-                          />
+                            @change="onUpdateOverride(o.date, ri, 'start', ($event.target as HTMLInputElement).value)" />
                           <span>–</span>
-                          <input
-                            type="time"
+                          <input type="time"
                             class="h-9 rounded-lg border border-outline-variant/30 bg-surface-container-low px-2 text-[12px]"
                             :value="r.end"
-                            @change="onUpdateOverride(o.date, ri, 'end', ($event.target as HTMLInputElement).value)"
-                          />
+                            @change="onUpdateOverride(o.date, ri, 'end', ($event.target as HTMLInputElement).value)" />
                         </div>
                       </div>
                       <p v-else class="text-[12px] text-on-surface-variant">{{ t.availUnavailable }}</p>
@@ -445,19 +371,13 @@ const adminNav = computed(() => [
 
                   <!-- Mini week preview when calendar view -->
                   <div v-if="viewMode === 'calendar'" class="mt-4 grid grid-cols-7 gap-1">
-                    <div
-                      v-for="jsDay in dayOrder"
-                      :key="`cal-${jsDay}`"
-                      class="rounded-lg p-2 text-center"
-                      :class="
-                        schedule.days[jsDay].ranges.length
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-surface-container-high text-on-surface-variant'
-                      "
-                    >
+                    <div v-for="jsDay in dayOrder" :key="`cal-${jsDay}`" class="rounded-lg p-2 text-center" :class="schedule.days[jsDay]?.ranges.length
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-surface-container-high text-on-surface-variant'
+                      ">
                       <p class="text-[10px] font-bold">{{ shortForJsDay(jsDay) }}</p>
                       <p class="mt-1 font-latin text-[9px] leading-tight">
-                        <template v-if="schedule.days[jsDay].ranges[0]">
+                        <template v-if="schedule.days[jsDay]?.ranges[0]">
                           {{ schedule.days[jsDay].ranges[0].start }}
                           <br />
                           {{ schedule.days[jsDay].ranges[0].end }}
@@ -474,11 +394,9 @@ const adminNav = computed(() => [
               <p class="text-[14px] text-on-surface-variant">
                 {{ t.dashConnectCalendar }}
               </p>
-              <button
-                type="button"
-                class="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-outline-variant/30 px-4 text-[13px] font-semibold"
-              >
-                <span class="material-symbols-outlined">event_available</span>
+              <button type="button"
+                class="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-outline-variant/30 px-4 text-[13px] font-semibold">
+                <Icon name="ph:calendar-check" />
                 Google Calendar / Outlook
               </button>
             </template>
@@ -486,7 +404,8 @@ const adminNav = computed(() => [
             <template v-else>
               <p class="text-[14px] font-semibold">{{ t.availTabAdvanced }}</p>
               <p class="mt-2 text-[13px] text-on-surface-variant">{{ t.dashAutoBuffer }} · {{ t.dashAutoSync }}</p>
-              <label class="mt-4 flex min-h-11 cursor-pointer items-center justify-between rounded-xl bg-surface-container-low px-3 text-[13px] font-semibold">
+              <label
+                class="mt-4 flex min-h-11 cursor-pointer items-center justify-between rounded-xl bg-surface-container-low px-3 text-[13px] font-semibold">
                 {{ t.dashAutoBuffer }}
                 <input type="checkbox" checked class="accent-primary" />
               </label>
@@ -494,10 +413,8 @@ const adminNav = computed(() => [
           </div>
         </div>
 
-        <div
-          v-if="toast"
-          class="pointer-events-none absolute bottom-4 start-1/2 z-10 -translate-x-1/2 rounded-full bg-on-surface px-4 py-2 text-[12px] font-bold text-white shadow-lg"
-        >
+        <div v-if="toast"
+          class="pointer-events-none absolute bottom-4 start-1/2 z-10 -translate-x-1/2 rounded-full bg-on-surface px-4 py-2 text-[12px] font-bold text-white shadow-lg">
           {{ t.availSavedToast }}
         </div>
       </div>

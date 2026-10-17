@@ -16,20 +16,15 @@ const { t } = useLanguage()
       </div>
 
       <div class="grid grid-cols-1 gap-4 sm:gap-gutter md:grid-cols-3">
-        <article
-          v-for="step in t.steps"
-          :key="step.title"
-          v-fade-up
-          class="relative flex h-full min-w-0 flex-col justify-between rounded-xl bg-surface-container-lowest p-4 shadow-sm sm:p-space-lg"
-        >
+        <article v-for="step in t.steps" :key="step.title" v-fade-up
+          class="relative flex h-full min-w-0 flex-col justify-between rounded-xl bg-surface-container-lowest p-4 shadow-sm sm:p-space-lg">
           <div>
             <div class="mb-space-md flex items-center justify-between">
               <span
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-[18px] font-bold text-on-primary"
-              >
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-[18px] font-bold text-on-primary">
                 {{ step.n }}
               </span>
-              <span class="material-symbols-outlined text-[28px] text-primary">{{ step.icon }}</span>
+              <Icon name="ph:{{ step.icon }}" />
             </div>
             <h3 class="mb-2 text-[17px] font-semibold text-on-surface sm:text-[18px]">{{ step.title }}</h3>
             <p class="text-[13px] leading-5 text-on-surface-variant">{{ step.desc }}</p>

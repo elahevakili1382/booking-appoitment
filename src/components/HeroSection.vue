@@ -1,8 +1,6 @@
 <script setup lang="ts">
-/**
- * هیرو پگاسوس: شیدر ابری · بیضی با سوایپر واقعی · متن چرخشی SCROLL · فارسی
- */
-import { ref } from 'vue'
+
+// import { ref } from 'vue'
 import { motion } from 'motion-v'
 import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
 import { useLanguage } from '../i18n/useLanguage'
@@ -116,7 +114,7 @@ function go(i: number) {
 
           <span
             class="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fefae0] text-[#d4a373] shadow-[0_8px_24px_-8px_rgba(61,52,38,0.4)] ring-1 ring-[#d4a373]/30">
-            <span class="material-symbols-outlined scroll-btn__arrow text-[18px]">south</span>
+            <Icon name="ph:south" />
           </span>
         </a>
       </div>
@@ -152,7 +150,7 @@ function go(i: number) {
           :transition="{ delay: 0.4, duration: 0.7 }">
           <span
             class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ccd5ae] text-[#3d3426]">
-            <span class="material-symbols-outlined text-[16px]">person</span>
+            <Icon name="ph:person" />
           </span>
           <p class="text-[11.5px] leading-5 text-[#5c5346]">
             <template v-if="locale === 'fa'">

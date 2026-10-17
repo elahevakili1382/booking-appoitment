@@ -225,107 +225,63 @@ const move = computed(() => `translateX(calc(${slid.value} * (${size(props.slatW
 </script>
 
 <template>
-  <div
-    v-if="count"
-    :class="cn('flex w-full flex-col', className)"
-    :style="{ containerType: 'inline-size', ...vars }"
-    @mouseenter="paused = true"
-    @mouseleave="paused = false; hover = -1"
-    @focusin="paused = true"
-    @focusout="paused = false"
-  >
+  <div v-if="count" :class="cn('flex w-full flex-col', className)" :style="{ containerType: 'inline-size', ...vars }"
+    @mouseenter="paused = true" @mouseleave="paused = false; hover = -1" @focusin="paused = true"
+    @focusout="paused = false">
     <div v-if="controls && count > 1" class="mb-4 flex justify-end gap-2">
-      <button
-        type="button"
+      <button type="button"
         class="grid size-9 cursor-pointer place-items-center rounded-md bg-[var(--sq-fill)] text-[var(--sq-on-fill)] transition-opacity hover:opacity-85"
-        aria-label="Previous"
-        @click="step(-1)"
-      >
-        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        aria-label="Previous" @click="step(-1)">
+        <Icon name="ph:caret-right" />
       </button>
-      <button
-        type="button"
+      <button type="button"
         class="grid size-9 cursor-pointer place-items-center rounded-md bg-[var(--sq-fill)] text-[var(--sq-on-fill)] transition-opacity hover:opacity-85"
-        aria-label="Next"
-        @click="step(1)"
-      >
-        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        aria-label="Next" @click="step(1)">
+        <Icon name="ph:caret-left" />
       </button>
     </div>
 
     <div class="w-full overflow-hidden" style="height: var(--sq-h)">
-      <div
-        role="tablist"
-        :aria-label="label"
-        aria-orientation="horizontal"
-        class="flex h-full w-max"
-        :style="{
-          transform: move,
-          transition: still ? 'none' : 'transform var(--sq-ms) var(--sq-ease)',
-        }"
-        @keydown="onKeyDown"
-      >
-        <button
-          v-for="(card, place) in cards"
-          :key="card.key"
-          type="button"
-          role="tab"
-          :id="`${ids}-tab-${card.key}`"
-          :aria-selected="place + column === 0"
-          :aria-controls="`${ids}-panel`"
-          :aria-label="slides[card.slide]?.title"
-          :tabindex="place + column === 0 ? 0 : -1"
-          :class="
-            cn(
-              'relative isolate h-full shrink-0 cursor-pointer overflow-hidden bg-[#f4dde1] p-0 outline-none',
-              'focus-visible:ring-2 focus-visible:ring-[var(--sq-fill)] focus-visible:ring-offset-2',
-              panelClassName,
-            )
-          "
-          :style="{
-            width: widthOf(place + column),
-            marginLeft:
-              place === 0
-                ? '0'
-                : place + column < 4
-                  ? 'var(--sq-gap)'
-                  : 'var(--sq-slat-gap)',
-            borderRadius: `min(var(--sq-radius), calc(${widthOf(place + column)} / 2))`,
-            transitionProperty: 'width, margin-left',
-            transitionDuration: still ? '0s' : 'var(--sq-ms)',
-            transitionTimingFunction: 'var(--sq-ease)',
-          }"
-          @mousemove="hoverGrow && (hover = place + column)"
-          @click="place + column > 0 && step(place + column)"
-        >
-          <img
-            v-if="slides[card.slide]?.image"
-            :src="slides[card.slide]!.image"
-            :alt="slides[card.slide]!.imageAlt ?? ''"
-            draggable="false"
+      <div role="tablist" :aria-label="label" aria-orientation="horizontal" class="flex h-full w-max" :style="{
+        transform: move,
+        transition: still ? 'none' : 'transform var(--sq-ms) var(--sq-ease)',
+      }" @keydown="onKeyDown">
+        <button v-for="(card, place) in cards" :key="card.key" type="button" role="tab" :id="`${ids}-tab-${card.key}`"
+          :aria-selected="place + column === 0" :aria-controls="`${ids}-panel`" :aria-label="slides[card.slide]?.title"
+          :tabindex="place + column === 0 ? 0 : -1" :class="cn(
+            'relative isolate h-full shrink-0 cursor-pointer overflow-hidden bg-[#f4dde1] p-0 outline-none',
+            'focus-visible:ring-2 focus-visible:ring-[var(--sq-fill)] focus-visible:ring-offset-2',
+            panelClassName,
+          )
+            " :style="{
+              width: widthOf(place + column),
+              marginLeft:
+                place === 0
+                  ? '0'
+                  : place + column < 4
+                    ? 'var(--sq-gap)'
+                    : 'var(--sq-slat-gap)',
+              borderRadius: `min(var(--sq-radius), calc(${widthOf(place + column)} / 2))`,
+              transitionProperty: 'width, margin-left',
+              transitionDuration: still ? '0s' : 'var(--sq-ms)',
+              transitionTimingFunction: 'var(--sq-ease)',
+            }" @mousemove="hoverGrow && (hover = place + column)" @click="place + column > 0 && step(place + column)">
+          <img v-if="slides[card.slide]?.image" :src="slides[card.slide]!.image"
+            :alt="slides[card.slide]!.imageAlt ?? ''" draggable="false"
             class="absolute inset-y-0 left-1/2 h-full max-w-none -translate-x-1/2 object-cover"
-            :style="{ width: 'var(--sq-hero)', minWidth: '100%' }"
-          />
-          <span
-            v-else
-            aria-hidden="true"
-            class="absolute inset-y-0 left-1/2 -translate-x-1/2"
-            :style="{
-              background: slides[card.slide]?.background || '#8a4853',
-              width: 'var(--sq-hero)',
-              minWidth: '100%',
-            }"
-          />
+            :style="{ width: 'var(--sq-hero)', minWidth: '100%' }" />
+          <span v-else aria-hidden="true" class="absolute inset-y-0 left-1/2 -translate-x-1/2" :style="{
+            background: slides[card.slide]?.background || '#8a4853',
+            width: 'var(--sq-hero)',
+            minWidth: '100%',
+          }" />
 
-          <span
-            v-if="slides[card.slide]?.overlay"
-            aria-hidden="true"
+          <span v-if="slides[card.slide]?.overlay" aria-hidden="true"
             class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent p-4 pt-16"
             :style="{
               opacity: place + column === 0 ? 1 : 0,
               transition: 'opacity var(--sq-ms) var(--sq-ease)',
-            }"
-          >
+            }">
             <span class="text-sm font-medium tracking-tight text-white">{{ slides[card.slide]!.overlay }}</span>
           </span>
         </button>
@@ -333,18 +289,14 @@ const move = computed(() => `translateX(calc(${slid.value} * (${size(props.slatW
     </div>
 
     <div :id="`${ids}-panel`" role="tabpanel" aria-live="polite" class="mt-6 grid">
-      <div
-        v-for="(slide, i) in slides"
-        :key="slide.id ?? i"
-        :aria-hidden="i !== open"
+      <div v-for="(slide, i) in slides" :key="slide.id ?? i" :aria-hidden="i !== open"
         class="col-start-1 row-start-1 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-10"
         :style="{
           opacity: i === open ? 1 : 0,
           visibility: i === open ? 'visible' : 'hidden',
           pointerEvents: i === open ? 'auto' : 'none',
           transition: 'opacity var(--sq-ms) var(--sq-ease), visibility var(--sq-ms)',
-        }"
-      >
+        }">
         <p class="max-w-[46rem] text-[15px] leading-[1.6] text-balance sm:text-[17px]">
           <span class="text-on-surface">{{ slide.title }}</span>
           <template v-if="slide.description">
@@ -352,14 +304,10 @@ const move = computed(() => `translateX(calc(${slid.value} * (${size(props.slatW
             <span class="text-on-surface-variant">{{ slide.description }}</span>
           </template>
         </p>
-        <NuxtLink
-          v-if="slide.action && slide.href"
-          :to="slide.href"
-          :tabindex="i === open ? 0 : -1"
-          class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--sq-fill)] px-5 py-2.5 text-sm font-medium text-[var(--sq-on-fill)] transition-opacity hover:opacity-85"
-        >
+        <NuxtLink v-if="slide.action && slide.href" :to="slide.href" :tabindex="i === open ? 0 : -1"
+          class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--sq-fill)] px-5 py-2.5 text-sm font-medium text-[var(--sq-on-fill)] transition-opacity hover:opacity-85">
           {{ slide.action }}
-          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          <Icon name="ph:arrow_back" />
         </NuxtLink>
       </div>
     </div>

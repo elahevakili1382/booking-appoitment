@@ -136,17 +136,9 @@ const textTranslateX = computed(() => scrollProgress.value * (isMobile.value ? 1
   <div class="overflow-x-hidden transition-colors duration-700 ease-in-out">
     <section class="relative flex min-h-[100dvh] flex-col items-center justify-start">
       <div class="relative flex min-h-[100dvh] w-full flex-col items-center">
-        <motion.div
-          class="absolute inset-0 z-0 h-full"
-          :animate="{ opacity: 1 - scrollProgress }"
-          :transition="{ duration: 0.1 }"
-        >
-          <img
-            :src="bgImageSrc"
-            alt=""
-            class="h-screen w-screen object-cover object-center"
-            fetchpriority="high"
-          />
+        <motion.div class="absolute inset-0 z-0 h-full" :animate="{ opacity: 1 - scrollProgress }"
+          :transition="{ duration: 0.1 }">
+          <img :src="bgImageSrc" alt="" class="h-screen w-screen object-cover object-center" fetchpriority="high" />
           <div class="absolute inset-0 bg-[#2a181c]/25" />
         </motion.div>
 
@@ -159,82 +151,49 @@ const textTranslateX = computed(() => scrollProgress.value * (isMobile.value ? 1
                 height: `${mediaHeight}px`,
                 maxWidth: '95vw',
                 maxHeight: '85vh',
-              }"
-            >
+              }">
               <div v-if="mediaType === 'video'" class="pointer-events-none relative h-full w-full">
-                <video
-                  :src="mediaSrc"
-                  :poster="posterSrc"
-                  autoplay
-                  muted
-                  loop
-                  playsinline
-                  preload="auto"
-                  class="h-full w-full rounded-xl object-cover"
-                  :controls="false"
-                />
-                <motion.div
-                  class="absolute inset-0 rounded-xl bg-[#2a181c]/35"
-                  :animate="{ opacity: 0.55 - scrollProgress * 0.35 }"
-                  :transition="{ duration: 0.2 }"
-                />
+                <video :src="mediaSrc" :poster="posterSrc" autoplay muted loop playsinline preload="auto"
+                  class="h-full w-full rounded-xl object-cover" :controls="false" />
+                <motion.div class="absolute inset-0 rounded-xl bg-[#2a181c]/35"
+                  :animate="{ opacity: 0.55 - scrollProgress * 0.35 }" :transition="{ duration: 0.2 }" />
               </div>
               <div v-else class="relative h-full w-full">
-                <img :src="mediaSrc" :alt="title || ''" class="h-full w-full rounded-xl object-cover" />
-                <motion.div
-                  class="absolute inset-0 rounded-xl bg-[#2a181c]/45"
-                  :animate="{ opacity: 0.65 - scrollProgress * 0.35 }"
-                  :transition="{ duration: 0.2 }"
-                />
+                <NuxtImg :src="mediaSrc" :alt="title || ''" class="h-full w-full rounded-xl object-cover" format="webp"
+                  loading="lazy">
+                  <motion.div class="absolute inset-0 rounded-xl bg-[#2a181c]/45"
+                    :animate="{ opacity: 0.65 - scrollProgress * 0.35 }" :transition="{ duration: 0.2 }" />
               </div>
             </div>
 
-            <div
-              class="relative z-10 mt-[min(42vh,280px)] flex flex-col items-center text-center"
-              :style="{ pointerEvents: mediaFullyExpanded ? 'auto' : 'none' }"
-            >
-              <p
-                v-if="date"
+            <div class="relative z-10 mt-[min(42vh,280px)] flex flex-col items-center text-center"
+              :style="{ pointerEvents: mediaFullyExpanded ? 'auto' : 'none' }">
+              <p v-if="date"
                 class="font-latin text-[13px] font-semibold tracking-[0.12em] text-[#f4dde1] uppercase sm:text-[15px]"
-                :style="{ transform: `translateX(-${textTranslateX}vw)` }"
-              >
+                :style="{ transform: `translateX(-${textTranslateX}vw)` }">
                 {{ date }}
               </p>
-              <p
-                v-if="scrollToExpand"
-                class="mt-2 text-[13px] font-medium text-[#f4dde1]/90 sm:text-[14px]"
-                :style="{ transform: `translateX(${textTranslateX}vw)` }"
-              >
+              <p v-if="scrollToExpand" class="mt-2 text-[13px] font-medium text-[#f4dde1]/90 sm:text-[14px]"
+                :style="{ transform: `translateX(${textTranslateX}vw)` }">
                 {{ scrollToExpand }}
               </p>
             </div>
 
-            <div
-              class="relative z-10 flex w-full flex-col items-center justify-center gap-2 text-center sm:gap-3"
-              :class="textBlend ? 'mix-blend-difference' : ''"
-            >
-              <h1
-                class="font-hero text-[clamp(2rem,6vw,4.5rem)] text-[#fff0f2]"
-                :style="{ transform: `translateX(-${textTranslateX * 0.35}vw)` }"
-              >
+            <div class="relative z-10 flex w-full flex-col items-center justify-center gap-2 text-center sm:gap-3"
+              :class="textBlend ? 'mix-blend-difference' : ''">
+              <h1 class="font-hero text-[clamp(2rem,6vw,4.5rem)] text-[#fff0f2]"
+                :style="{ transform: `translateX(-${textTranslateX * 0.35}vw)` }">
                 {{ firstWord }}
               </h1>
-              <h1
-                v-if="restOfTitle"
-                class="font-hero text-[clamp(2rem,6vw,4.5rem)] text-[#fff0f2]"
-                :style="{ transform: `translateX(${textTranslateX * 0.35}vw)` }"
-              >
+              <h1 v-if="restOfTitle" class="font-hero text-[clamp(2rem,6vw,4.5rem)] text-[#fff0f2]"
+                :style="{ transform: `translateX(${textTranslateX * 0.35}vw)` }">
                 {{ restOfTitle }}
               </h1>
             </div>
           </div>
 
-          <motion.section
-            class="flex w-full flex-col px-page py-10 md:py-16"
-            :initial="{ opacity: 0 }"
-            :animate="{ opacity: showContent ? 1 : 0 }"
-            :transition="{ duration: 0.7 }"
-          >
+          <motion.section class="flex w-full flex-col px-page py-10 md:py-16" :initial="{ opacity: 0 }"
+            :animate="{ opacity: showContent ? 1 : 0 }" :transition="{ duration: 0.7 }">
             <slot />
           </motion.section>
         </div>

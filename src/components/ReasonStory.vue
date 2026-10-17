@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+// import { onMounted, onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -32,8 +32,10 @@ let mm: gsap.MatchMedia | null = null
 let st: ScrollTrigger | null = null
 
 onMounted(() => {
-  if (!root.value) return
-  const slides = Array.from(root.value.querySelectorAll<HTMLElement>('[data-slide]'))
+  const el = root.value // ✅ متغیر محلی بسازید
+  if (!el) return
+
+  const slides = Array.from(el.querySelectorAll<HTMLElement>('[data-slide]'))
   const n = slides.length
 
   mm = gsap.matchMedia()
@@ -44,7 +46,7 @@ onMounted(() => {
     const tl = gsap.timeline({
       defaults: { ease: 'none' },
       scrollTrigger: {
-        trigger: root.value,
+        trigger: el, // ✅ از el استفاده کنید
         start: 'top top',
         end: `+=${n * 60}%`,
         scrub: 1,
@@ -56,24 +58,27 @@ onMounted(() => {
       },
     })
 
-    // هر اسلاید: بیرون رفتن فعلی + اومدن بعدی، دور مرز بین دو مرحله
     for (let i = 0; i < n - 1; i++) {
-      const t = i + 1 // لحظه‌ی مرز
-      tl.to(slides[i], { opacity: 0, y: -50, duration: 0.4 }, t - 0.2)
-      tl.fromTo(
-        slides[i + 1],
-        { opacity: 0, y: 50 },
-        { opacity: 1, y: 0, duration: 0.4 },
-        t - 0.2,
-      )
+      const t = i + 1
+      const currentSlide = slides[i]
+      const nextSlide = slides[i + 1]
+
+      // چک کردن وجود اسلایدها
+      if (currentSlide && nextSlide) {
+        tl.to(currentSlide, { opacity: 0, y: -50, duration: 0.4 }, t - 0.2)
+        tl.fromTo(
+          nextSlide,
+          { opacity: 0, y: 50 },
+          { opacity: 1, y: 0, duration: 0.4 },
+          t - 0.2,
+        )
+      }
     }
-    // طول تایم‌لاین رو دقیقاً n می‌کنیم تا هر اسلاید سهم مساوی داشته باشه
     tl.to({}, { duration: 0.2 }, n - 0.2)
 
     st = tl.scrollTrigger ?? null
-  }, root.value)
+  }, el) // ✅ از el استفاده کنید
 })
-
 onBeforeUnmount(() => {
   mm?.revert()
 })
@@ -107,11 +112,16 @@ function goTo(i: number) {
           <article v-for="r in reasons" :key="r.no" data-slide class="relative lg:col-start-1 lg:row-start-1">
             <!-- عدد بزرگ کم‌رنگ پشت متن -->
             <span aria-hidden="true"
-              class="pointer-events-none absolute -bottom-6 end-0 -z-0 font-display text-[9rem] font-bold leading-none text-ink/[0.06] lg:text-[11rem]">{{
-                r.no }}</span>
+              class="pointer-events-none absolute -bottom-6 end-0 -z-0 font-display text-[9rem] font-bold leading-none text-ink/[0.06] lg:text-[11rem]">
+              {{ r.no }}
+            </span>
 
             <div class="relative z-10 mx-auto w-full max-w-[26rem]">
-              <img :src="r.img" :alt="r.title" class="aspect-[5/4] w-full rounded-t-full object-cover" loading="lazy" />
+              <!-- ✅ اصلاح شد: تگ بسته شد و ویژگی تکراری حذف شد -->
+              <NuxtImg :src="r.img" :alt="r.title" class="aspect-[5/4] w-full rounded-t-full object-cover"
+                loading="lazy" format="webp" />
+
+              <!-- ✅ متن‌ها حالا خارج از تگ تصویر قرار دارند -->
               <h3 class="mt-6 text-center font-display text-lg font-bold leading-8 text-ink">
                 {{ r.title }}
               </h3>

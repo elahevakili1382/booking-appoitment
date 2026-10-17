@@ -10,8 +10,9 @@ const buttons = [
   <section id="first-visit" class="relative w-full px-page py-16 md:py-24">
     <div class="mx-auto w-full max-w-[1200px]">
       <!-- عکس عریض با گوشه‌های گرد -->
-      <img src="/public/first-visit/first-visit.jpg" alt="فضای آرام کلینیک لومینا"
-        class="aspect-[16/9] w-full rounded-[2rem] object-cover md:aspect-[3/1] md:rounded-[3rem]" loading="lazy" />
+      <NuxtImg src="/first-visit/first-visit.jpg" alt="فضای آرام کلینیک لومینا"
+        class="aspect-[16/9] w-full rounded-[2rem] object-cover md:aspect-[3/1] md:rounded-[3rem]" loading="lazy"
+        format="webp" />
 
       <!-- ردیف سه‌ستونه -->
       <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.2fr_auto] lg:items-start lg:gap-12">

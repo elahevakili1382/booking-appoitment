@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import doctorImg from '~/assets/doctor/doctor.jpg'
+// import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -69,7 +68,8 @@ onBeforeUnmount(() => {
     <section ref="root" class="relative w-full overflow-hidden bg-[#fefae0] lg:h-screen">
         <!-- عکس ثابت سمت چپ -->
         <div class="relative h-[60vh] w-full lg:absolute lg:inset-y-0 lg:left-0 lg:h-full lg:w-1/2">
-            <img :src="doctorImg" alt="پزشک کلینیک لومینا" class="h-full w-full object-cover" />
+            <NuxtImg src="/doctor/doctor.jpg" alt="پزشک کلینیک لومینا" class="h-full w-full object-cover" format="webp"
+                loading="lazy" />
             <!-- محو شدن لبه‌ی عکس توی پس‌زمینه -->
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#fefae0]" />
         </div>

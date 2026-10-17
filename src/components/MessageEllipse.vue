@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+// import { onMounted, onBeforeUnmount, ref } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const root = ref < HTMLElement | null > (null)
-const frame = ref < HTMLElement | null > (null)
-const img = ref < HTMLElement | null > (null)
+const root = ref<HTMLElement | null>(null)
+const frame = ref<HTMLElement | null>(null)
+const img = ref<HTMLElement | null>(null)
 let ctx: gsap.Context | null = null
 
 onMounted(() => {
