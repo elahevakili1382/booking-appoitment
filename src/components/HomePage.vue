@@ -31,7 +31,6 @@ useSmoothScroll()
     <FirstVisit />
     <ServicesSection />
     <GallerySection />
-    <HomeBlog />
-    <FinalCta />
+    <CaseResultSection />
   </div>
 </template>
