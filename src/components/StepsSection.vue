@@ -6,9 +6,9 @@ const { t } = useLanguage()
 
 <template>
   <section class="w-full max-w-[100vw] overflow-x-clip bg-surface-container-high py-10 sm:py-14 md:py-space-xl">
-    <div class="mx-auto max-w-[1400px] px-page">
+    <div class="mx-auto max-w-350 px-page">
       <div v-fade-up class="mx-auto mb-8 max-w-3xl text-center sm:mb-space-xl">
-        <span class="font-latin text-[10px] font-bold uppercase tracking-[0.1em] text-primary">{{
+        <span class="font-latin text-[10px] font-bold uppercase tracking-widest text-primary">{{
           t.stepsEyebrow
         }}</span>
         <h2 class="section-title mt-1 text-on-surface">{{ t.stepsTitle }}</h2>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { motion } from 'motion-v'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import { useLanguage } from '../i18n/useLanguage'
@@ -9,11 +8,12 @@ const { t, locale } = useLanguage()
 const reduce = usePreferredReducedMotion()
 const route = useRoute()
 
-/** 1 service · 2 personal · 3 location · 4 appointment · 5 payment · 6 confirm */
+// ───────── State ─────────
 const step = ref(1)
 const branch = ref('')
 const service = ref('')
 const serviceId = ref('consult')
+const servicePrice = ref(0)  // ✅ قیمت سرویس انتخابی
 const doctor = ref('')
 const staffId = ref<'any' | string>('any')
 const visitType = ref<'clinic' | 'online'>('clinic')
@@ -30,7 +30,35 @@ const confirmed = ref(false)
 const bookingCode = ref('')
 const bookingId = ref('')
 const payUrl = ref('')
+const showCalendar = ref(false)
 
+function selectDateFromCalendar(iso: string) {
+  const a = new Date(`${isoDateOffset(0)}T12:00:00`)
+  const b = new Date(`${iso}T12:00:00`)
+  const diffDays = Math.round((b.getTime() - a.getTime()) / 86_400_000)
+  if (diffDays >= 0) {
+    weekOffset.value = Math.floor(diffDays / 7)
+    selectedDate.value = diffDays % 7
+  }
+  showCalendar.value = false
+}
+
+function onDatePick(day: any) {
+  // در v-calendar نسخه ۳، ورودی یک آبجکت است که خاصیت .date دارد
+  const pickedDate = day.date
+  const today = new Date(isoDateOffset(0))
+
+  // اختلاف روزها
+  const diffDays = Math.floor((pickedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (diffDays >= 0) {
+    weekOffset.value = Math.floor(diffDays / 7)
+    selectedDate.value = diffDays % 7
+  }
+  showCalendar.value = false
+}
+
+// ───────── API Data ─────────
 const { data: servicesApi } = useAsyncData('book-services', () =>
   $fetch<{ ok: boolean; data: Array<{ id: string; titleFa: string; titleEn: string; duration: number; price: number }> }>(
     '/api/services',
@@ -41,6 +69,7 @@ const { data: doctorsApi } = useAsyncData('book-doctors', () =>
   $fetch<{ ok: boolean; data: Array<{ id: string; nameFa: string; nameEn: string }> }>('/api/doctors'),
 )
 
+// ───────── Watchers ─────────
 watch(
   () => t.value.branches,
   (branches) => {
@@ -61,6 +90,7 @@ watch(
     if (match) {
       serviceId.value = match.id
       service.value = locale.value === 'fa' ? match.titleFa : match.titleEn
+      servicePrice.value = match.price
     }
   },
   { immediate: true },
@@ -78,6 +108,14 @@ watch(
   { immediate: true },
 )
 
+// ✅ تابع انتخاب سرویس (با ID و قیمت)
+function selectService(id: string, title: string, price: number) {
+  serviceId.value = id
+  service.value = title
+  servicePrice.value = price
+}
+
+// ───────── Dates & Time ─────────
 function isoDateOffset(daysAhead: number) {
   const d = new Date()
   d.setHours(12, 0, 0, 0)
@@ -88,7 +126,6 @@ function isoDateOffset(daysAhead: number) {
   return `${y}-${m}-${day}`
 }
 
-/** عدد روز برای نمایش — فارسی = روز شمسی */
 function dayNumLabel(iso: string) {
   const d = new Date(`${iso}T12:00:00`)
   if (locale.value === 'fa') {
@@ -97,7 +134,6 @@ function dayNumLabel(iso: string) {
   return String(d.getDate())
 }
 
-/** الان به وقت تهران به صورت دقیقه از نیمه‌شب */
 function tehranNowMinutes() {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Tehran',
@@ -159,7 +195,12 @@ function shiftWeek(delta: number) {
 }
 
 const selectedIso = computed(() => dates.value[selectedDate.value]?.iso ?? isoDateOffset(0))
-const isSelectedToday = computed(() => selectedIso.value === isoDateOffset(0))
+
+// ✅ اصلاح: با clockTick همگام می‌شود
+const isSelectedToday = computed(() => {
+  void clockTick.value
+  return selectedIso.value === isoDateOffset(0)
+})
 
 const { data: slotsRes, refresh: refreshSlots } = useAsyncData(
   () => `book-slots-${selectedIso.value}-${serviceId.value}-${staffId.value}`,
@@ -171,7 +212,6 @@ const { data: slotsRes, refresh: refreshSlots } = useAsyncData(
   { watch: [selectedIso, serviceId, staffId] },
 )
 
-/** اسلات‌های قابل نمایش: برای امروز فقط از الان به بعد */
 const allSlots = computed(() => {
   void clockTick.value
   const raw = slotsRes.value?.slots ?? []
@@ -209,6 +249,7 @@ watch(selectedDate, () => {
   showAllSlots.value = false
 })
 
+// ───────── Addons & Prices ─────────
 const addonOptions = computed(() =>
   locale.value === 'fa'
     ? [
@@ -227,7 +268,9 @@ const deposit = 500000
 const addonTotal = computed(() =>
   addonOptions.value.filter((a) => addons.value.includes(a.id)).reduce((s, a) => s + a.price, 0),
 )
-const total = computed(() => deposit + addonTotal.value)
+
+// ✅ قیمت کل شامل سرویس + بیعانه + افزودنی‌ها
+const total = computed(() => servicePrice.value + deposit + addonTotal.value)
 
 function slotEnd(time: string) {
   const [h, m] = time.split(':').map(Number)
@@ -250,9 +293,7 @@ const selectedDateLabel = computed(() => {
 const selectedBanner = computed(() => {
   const d = dates.value[selectedDate.value]
   if (!d || !selectedTime.value) return ''
-  return locale.value === 'fa'
-    ? `${selectedDateLabel.value} ${t.value.bookSlotEnd} ${slotEnd(selectedTime.value)}`
-    : `${selectedDateLabel.value} ${t.value.bookSlotEnd} ${slotEnd(selectedTime.value)}`
+  return `${selectedDateLabel.value} ${t.value.bookSlotEnd} ${slotEnd(selectedTime.value)}`
 })
 
 const canNext = computed(() => {
@@ -300,7 +341,7 @@ async function confirmBooking() {
         doctor: doctor.value,
         staffId: staffId.value,
         visitType: visitType.value,
-        when: selectedDateLabel.value,
+        when: `${selectedIso.value}T${selectedTime.value}:00+03:30`, // ✅ ISO format
         date: selectedIso.value,
         time: selectedTime.value,
         startsAt: selectedStartsAt.value || undefined,
@@ -360,7 +401,7 @@ function goHome() {
 function stepStatus(n: number): 'done' | 'active' | 'todo' {
   if (confirmed.value && n <= 6) return n === 6 ? 'active' : 'done'
   if (n < step.value) return 'done'
-  if (n === step.value) return 'active'
+  if (n === step.value) 'active'
   return 'todo'
 }
 </script>
@@ -372,16 +413,17 @@ function stepStatus(n: number): 'done' | 'active' | 'todo' {
         radial-gradient(ellipse 70% 50% at 90% 80%, rgba(253, 187, 197, 0.28), transparent 50%),
         linear-gradient(160deg, #fefae0 0%, #e9edc9 42%, #faedcd 100%);
     ">
-    <div class="pointer-events-none absolute -start-20 top-10 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-    <div class="pointer-events-none absolute -end-16 bottom-20 h-72 w-72 rounded-full bg-secondary-fixed/40 blur-3xl" />
+    <div class="pointer-events-none absolute -inset-s-20 top-10 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+    <div
+      class="pointer-events-none absolute -inset-e-16 bottom-20 h-72 w-72 rounded-full bg-secondary-fixed/40 blur-3xl" />
 
     <motion.div
-      class="relative mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-surface-container-lowest shadow-[0_30px_80px_-28px_rgba(138,72,83,0.35)] sm:rounded-[2rem] lg:min-h-[36rem] lg:flex-row"
+      class="relative mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-surface-container-lowest shadow-[0_30px_80px_-28px_rgba(138,72,83,0.35)] sm:rounded-4xl lg:min-h-144 lg:flex-row"
       :initial="reduce ? false : { opacity: 0, y: 16 }" :animate="{ opacity: 1, y: 0 }"
       :transition="{ duration: 0.45 }">
       <!-- Sidebar stepper -->
       <aside
-        class="relative flex w-full shrink-0 flex-col border-b border-outline-variant/20 lg:w-[15.5rem] lg:border-b-0 lg:border-e"
+        class="relative flex w-full shrink-0 flex-col border-b border-outline-variant/20 lg:w-62 lg:border-b-0 lg:border-e"
         style="background: linear-gradient(180deg, #faedcd 0%, #e9edc9 55%, #e9edc9 100%)">
         <div class="flex items-center gap-2.5 px-5 pt-5 pb-4 sm:px-6">
           <NuxtImg :src="assets.logo" alt="" class="h-8 w-auto object-contain" format="webp" loading="lazy" />
@@ -471,32 +513,35 @@ function stepStatus(n: number): 'done' | 'active' | 'todo' {
 
         <template v-else>
           <div class="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
-            <!-- Step 1 · Service -->
+
             <div v-if="step === 1" class="flex flex-1 flex-col">
               <h2 class="text-[20px] font-bold text-on-surface sm:text-[24px]">{{ t.bookStepTitles[0] }}</h2>
               <p class="mt-1 text-[13px] text-on-surface-variant">{{ t.bookServicePick }}</p>
               <div class="mt-5 grid flex-1 gap-2 sm:grid-cols-2">
-                <button v-for="(opt, i) in t.servicesOpts" :key="opt" type="button"
-                  class="overflow-hidden rounded-2xl border text-start transition-all cursor-pointer" :class="service === opt
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                    : 'border-outline-variant/30 hover:border-primary/40 hover:bg-surface-container-low'
-                    " @click="service = opt">
-                  <img v-if="assets.services[i % assets.services.length]"
-                    :src="assets.services[i % assets.services.length]" alt=""
-                    class="h-28 w-full object-cover sm:h-32" />
-                  <span class="block p-3 text-[13px] font-semibold text-on-surface">{{ opt }}</span>
+                <!-- ✅ اصلاح: استفاده از srv به جای opt و selectService -->
+                <button v-for="(srv, i) in servicesApi?.data || []" :key="srv.id" type="button"
+                  class="overflow-hidden rounded-2xl border text-start transition-all cursor-pointer" :class="serviceId === srv.id
+                    ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
+                    : 'border-outline-variant/30 hover:border-primary/40 hover:bg-surface-container-low'"
+                  @click="selectService(srv.id, locale === 'fa' ? srv.titleFa : srv.titleEn, srv.price)">
+                  <NuxtImg :src="assets.services[i % assets.services.length]" alt=""
+                    class="aspect-ratio w-full object-cover object-center bg-surface-container-low" format="webp"
+                    loading="lazy" />
+                  <span class="block p-3 text-[13px] font-semibold text-on-surface">
+                    {{ locale === 'fa' ? srv.titleFa : srv.titleEn }}
+                  </span>
                 </button>
               </div>
               <div class="mt-5">
                 <label class="mb-2 block text-[12px] font-semibold text-on-surface">{{ t.bookDoctorLabel }}</label>
                 <div class="grid gap-2">
-                  <button v-for="opt in t.doctorsOpts" :key="opt" type="button"
+                  <button v-for="d in doctorsApi?.data || []" :key="d.id" type="button"
                     class="min-h-12 cursor-pointer rounded-xl border px-3 py-3 text-start text-[13px] transition-colors"
-                    :class="doctor === opt
+                    :class="doctor === (locale === 'fa' ? d.nameFa : d.nameEn)
                       ? 'border-primary bg-primary/5 font-semibold text-primary'
-                      : 'border-outline-variant/30 text-on-surface hover:bg-surface-container-low'
-                      " @click="doctor = opt">
-                    {{ opt }}
+                      : 'border-outline-variant/30 text-on-surface hover:bg-surface-container-low'"
+                    @click="doctor = locale === 'fa' ? d.nameFa : d.nameEn; staffId = d.id">
+                    {{ locale === 'fa' ? d.nameFa : d.nameEn }}
                   </button>
                 </div>
               </div>
@@ -565,44 +610,68 @@ function stepStatus(n: number): 'done' | 'active' | 'todo' {
             </div>
 
             <!-- Step 4 · Appointment (date & time) — MicroLab-like -->
+            <!-- Step 4 · Appointment (date & time) — MicroLab-like -->
             <div v-else-if="step === 4" class="flex flex-1 flex-col">
+
+              <!-- هدر: عنوان + انتخاب‌گر ماه -->
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <h2 class="text-[20px] font-bold text-on-surface sm:text-[24px]">{{ t.bookSelectDateTime }}</h2>
-                <div
-                  class="flex items-center gap-1 rounded-full bg-surface-container-low px-2 py-1 text-[12px] font-semibold text-on-surface-variant">
-                  <button type="button"
-                    class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-white disabled:opacity-40"
-                    :disabled="weekOffset === 0" @click="shiftWeek(-1)">
-                    <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_right' :
-                      'chevron_left' }}</span>
-                  </button>
-                  <span class="min-w-[7.5rem] text-center">{{ monthLabel }}</span>
-                  <button type="button"
-                    class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-white"
-                    @click="shiftWeek(1)">
-                    <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_left' :
-                      'chevron_right' }}</span>
-                  </button>
+
+                <!-- ✅ بخش کنترل ماه (قبلی / کلیک‌پذیر / بعدی) -->
+                <div class="relative">
+                  <div
+                    class="flex items-center gap-1 rounded-full bg-surface-container-low px-2 py-1 text-[12px] font-semibold text-on-surface-variant">
+
+                    <!-- دکمه هفته قبل -->
+                    <button type="button"
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-white disabled:opacity-40"
+                      :disabled="weekOffset === 0" @click="shiftWeek(-1)">
+                      <Icon :name="locale === 'fa' ? 'ph:caret-right' : 'ph:caret-left'"
+                        class="w-5 h-5 text-on-surface" />
+                    </button>
+
+                    <!-- ✅ دکمه ماه: با کلیک تقویم باز می‌شود -->
+                    <button type="button"
+                      class="min-w-30 cursor-pointer text-center hover:text-primary transition-colors"
+                      @click="showCalendar = !showCalendar">
+                      {{ monthLabel }}
+                    </button>
+
+                    <!-- دکمه هفته بعد -->
+                    <button type="button"
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-white"
+                      @click="shiftWeek(1)">
+                      <Icon :name="locale === 'fa' ? 'ph:caret-left' : 'ph:caret-right'"
+                        class="w-5 h-5 text-on-surface" />
+                    </button>
+                  </div>
+
+                  <!-- ✅ تقویم پاپ‌آپ -->
+                  <div v-if="showCalendar" class="absolute top-full end-0 z-50 mt-2">
+                    <JalaliCalendarPopover :model-iso="selectedIso" :min-iso="isoDateOffset(0)"
+                      @select="selectDateFromCalendar" @close="showCalendar = false" />
+                  </div>
                 </div>
               </div>
 
-              <!-- Date strip -->
+              <!-- ردیف تاریخ‌ها (Date strip) -->
               <div class="mt-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none [scroll-snap-type:x_mandatory]">
                 <button v-for="(d, i) in dates" :key="d.num" type="button"
-                  class="flex min-w-[4.25rem] shrink-0 snap-start cursor-pointer flex-col items-center rounded-xl px-2 py-3 transition-all"
+                  class="flex min-w-17 shrink-0 snap-start cursor-pointer flex-col items-center rounded-xl px-2 py-3 transition-all"
                   :class="selectedDate === i
                     ? 'bg-transparent'
                     : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
                     " @click="selectedDate = i">
                   <span class="text-[11px] font-medium" :class="selectedDate === i ? 'text-primary' : ''">{{ d.day
-                  }}</span>
+                    }}</span>
                   <span class="mt-1 text-[20px] font-bold" :class="selectedDate === i ? 'text-on-surface' : ''">{{ d.num
-                  }}</span>
+                    }}</span>
                   <span class="mt-2 h-1 w-8 rounded-full transition-colors"
                     :class="selectedDate === i ? 'bg-primary' : 'bg-transparent'" />
                 </button>
               </div>
 
+              <!-- اگر اسلاتی برای این روز نبود -->
               <div v-if="!allSlots.length"
                 class="mt-5 rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-low p-6 text-center text-[13px] text-on-surface-variant">
                 <p v-if="isSelectedToday">
@@ -620,7 +689,7 @@ function stepStatus(n: number): 'done' | 'active' | 'todo' {
                 </button>
               </div>
 
-              <!-- Time grid -->
+              <!-- شبکه ساعت‌ها (Time grid) -->
               <div v-else class="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                 <button v-for="slot in visibleSlots" :key="slot.time" type="button"
                   class="min-h-11 cursor-pointer rounded-xl px-2 py-2.5 text-center text-[14px] font-semibold transition-colors"
@@ -634,15 +703,16 @@ function stepStatus(n: number): 'done' | 'active' | 'todo' {
                 </button>
               </div>
 
+              <!-- دکمه نمایش زمان‌های بیشتر -->
               <button v-if="allSlots.length" type="button"
                 class="mt-4 cursor-pointer self-start text-[13px] font-semibold text-primary hover:underline"
                 @click="showAllSlots = !showAllSlots">
                 {{ showAllSlots ? t.bookBack : t.bookShowMoreSlots }}
                 <span class="font-normal text-on-surface-variant">({{ availableCount }} {{ t.bookSlotsAvailable
-                }})</span>
+                  }})</span>
               </button>
 
-              <!-- Currently selected banner -->
+              <!-- بنر زمان انتخاب‌شده -->
               <div v-if="selectedTime"
                 class="mt-5 flex items-start gap-3 rounded-2xl border border-primary/15 bg-[#faedcd] px-4 py-3 sm:items-center">
                 <Icon name="ph:clock" />

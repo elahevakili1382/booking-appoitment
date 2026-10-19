@@ -26,7 +26,7 @@ const services = [
 
 <template>
   <section id="services" class="relative w-full px-page pb-16 md:pb-24">
-    <div class="mx-auto w-full max-w-[1200px] divide-y divide-ink/30">
+    <div class="mx-auto w-full max-w-300 divide-y divide-ink/30">
       <article v-for="s in services" :key="s.no"
         class="grid items-center gap-8 py-12 lg:grid-cols-2 lg:gap-16 lg:py-16">
         <!-- متن -->
@@ -69,7 +69,7 @@ const services = [
         </div>
 
         <!-- عکس قرصی + هاور فید -->
-        <figure class="group relative aspect-[2/1] w-full overflow-hidden rounded-full">
+        <figure class="group relative aspect-2/1 w-full overflow-hidden rounded-full">
           <img :src="s.img" :alt="s.title"
             class="h-full w-full object-cover motion-safe:transition-[transform,opacity,filter] motion-safe:duration-700 motion-safe:ease-out group-hover:opacity-80 motion-safe:group-hover:scale-105"
             loading="lazy" />

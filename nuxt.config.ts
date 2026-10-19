@@ -6,9 +6,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   srcDir: 'src',
   serverDir: 'server',
-  ssr: false, // SPA mode — داشبورد + بدون دردسر localStorage در SSR
+  ssr: false, 
 
-  // With srcDir:'src', dir.public is resolved from srcDir → use src/public
   dir: {
     public: 'public',
   },
@@ -16,14 +15,15 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   modules: ['@vueuse/nuxt', '@nuxt/icon',  '@nuxt/image'],
-   icon: {
-    customCollections: [
-      {
-        prefix: 'my-icons',
-        dir: './src/assets/icons'
-      }
-    ]
-  },
+icon: {
+  mode: 'svg',         
+  customCollections: [
+    {
+      prefix: 'my-icons',
+      dir: './src/assets/icons',
+    },
+  ],
+},
 
   vite: {
     plugins: [tailwindcss()],
@@ -33,7 +33,7 @@ app: {
   layoutTransition: { name: 'layout', mode: 'out-in' },
   head: {
     title: 'کلینیک لومینا | Lumina Clinic',
-    titleTemplate: '%s | کلینیک لومینا',  // ← فقط رشته ساده
+    titleTemplate: '%s | کلینیک لومینا',    
     
     htmlAttrs: {
       lang: 'fa',
