@@ -3,7 +3,7 @@
 import { useLanguage } from '../i18n/useLanguage'
 import { assets } from '../data/assets'
 import AvailabilityModal from './AvailabilityModal.vue'
-// import StaffCalendar from './StaffCalendar.vue'
+import { useToast } from '../composables/useToast.ts'
 
 type NavId = 'calendar' | 'contacts' | 'services' | 'links' | 'reports' | 'automations' | 'settings'
 type CalView = 'today' | 'staff' | 'day' | 'week' | 'month'
@@ -1147,18 +1147,18 @@ onUnmounted(() => {
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
-              @click="$fetch('/api/admin/reminders', { method: 'POST' }).then((r: any) => showAlert('SMS: ' + r.sent))">
+              @click="$fetch('/api/admin/reminders', { method: 'POST' }).then((r: any) => toast('SMS: ' + r.sent)).catch(() => toast('خطا در ارسال', 'error'))">
               ارسال یادآوری پیامک
             </button>
-            <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
-              @click="$fetch('/api/admin/backup', { method: 'POST' }).then((r: any) => showAlert(r.path))">
+            <button type=" button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
+              @click="$fetch('/api/admin/backup', { method: 'POST' }).then((r: any) => toast(r.path)).catch(() => toast('خطا در بکاپ', 'error'))">
               بکاپ SQLite
             </button>
           </div>
         </section>
 
         <!-- AUTOMATIONS -->
-        <section v-else-if="activeNav === 'automations'" class="mx-auto max-w-xl space-y-4">
+        <section v-else-if="activeNav === 'automations'" class=" mx-auto max-w-xl space-y-4">
           <div>
             <h2 class="text-[20px] font-bold">{{ t.dashAutomationsTitle }}</h2>
             <p class="mt-1 text-[13px] text-on-surface-variant">{{ t.dashAutomationsDesc }}</p>

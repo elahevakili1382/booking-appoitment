@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS staff (
   name_en TEXT NOT NULL,
   role_fa TEXT NOT NULL,
   role_en TEXT NOT NULL,
+  image_url TEXT DEFAULT '',
   active INTEGER NOT NULL DEFAULT 1,
   photo TEXT DEFAULT '',
   user_id TEXT,

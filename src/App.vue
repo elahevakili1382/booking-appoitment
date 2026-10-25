@@ -64,6 +64,7 @@ useSeoMeta({
 <template>
   <div id="top" class="w-full max-w-[100vw] overflow-x-clip bg-surface text-on-surface antialiased"
     :class="isDashboard || isBook ? 'min-h-dvh' : 'h-dvh-screen'">
+    <ToastHost />
     <AppHeader v-if="showHeader" />
     <PegasusRail v-if="isHome" />
 

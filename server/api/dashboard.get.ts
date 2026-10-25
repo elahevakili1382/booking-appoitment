@@ -1,8 +1,11 @@
 import { getDb } from '../db'
-import { getCalendarForDate, readStore } from '../utils/db'
+import { getCalendarForDate, readStore } from '../utils/compatStore'
 import { tehranToday } from '../utils/dates'
+import { requireUser } from '../utils/auth'
 
 export default defineEventHandler((event) => {
+  requireUser(event, ['admin', 'receptionist', 'staff'])
+
   const query = getQuery(event)
   const date = String(query.date || tehranToday())
   getDb()

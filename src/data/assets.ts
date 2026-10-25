@@ -6,11 +6,11 @@ export const assets = {
   hero: '/hero/lumina-hero.jpg', // public fallback; HeroSection imports from ~/assets/hero
  services: [
 '/services/hifu.jpg',
-'/services/images (25).jpg',
-'/services/images (26).jpg',
-'/services/images (27).jpg',
-'/services/images (28).jpg',
-'/services/images (29).jpg',
+'/services/profhilo.jpg',
+'/services/filler.jpg',
+'/services/consult.jpg',
+'/services/bridal.jpg',
+'/services/facial-care.jpg',
 
 ],
   doctors: [

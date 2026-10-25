@@ -10,3 +10,20 @@ stitch-export
 data/*.sqlite
 data/*.sqlite-*
 data/backups/
+
+# Dependencies and generated files
+node_modules/
+.nuxt/
+.output/
+dist/
+.vercel/
+
+# Private environment variables
+.env
+.env.*
+!.env.example
+
+# Local SQLite files
+/data/*.sqlite
+/data/*.sqlite-wal
+/data/*.sqlite-shm

@@ -76,6 +76,7 @@
       "nameEn": "Dr. Elena Rostami",
       "roleFa": "درماتولوژی",
       "roleEn": "Dermatology",
+      "image":"/doctors/rostami.jpg",
       "active": true
     },
     {
@@ -84,6 +85,7 @@
       "nameEn": "Dr. Saman Bahrami",
       "roleFa": "کانتورینگ",
       "roleEn": "Contouring",
+      "image":"/doctors/bahrami.jpg",
       "active": true
     },
     {
@@ -92,6 +94,7 @@
       "nameEn": "Dr. Niki Kaviani",
       "roleFa": "درماتوسرجری",
       "roleEn": "Dermatosurgery",
+      "image":"/doctors/kaviani.jpg",
       "active": true
     }
   ],

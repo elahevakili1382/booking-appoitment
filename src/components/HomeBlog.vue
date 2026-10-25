@@ -1,82 +1,50 @@
 <script setup lang="ts">
-// import { computed } from 'vue'
-import { homeEn, homeFa } from '../data/homeContent'
 import { useLanguage } from '../i18n/useLanguage'
 
 const { locale } = useLanguage()
-const h = computed(() => (locale.value === 'fa' ? homeFa : homeEn))
+const isFa = computed(() => locale.value === 'fa')
 
-type BlogPost = {
-  slug: string
-  title_fa?: string
-  title_en?: string
-  title?: string
-  category?: string
-  date?: string
-  excerpt_fa?: string
-  excerpt_en?: string
-}
-
-const { data } = await useAsyncData('home-blog', () =>
-  $fetch<{ ok: boolean; data: BlogPost[] }>('/api/blog'),
-)
-
-const fallback = computed(() =>
-  locale.value === 'fa'
-    ? [
-      { slug: 'hifu-aftercare', title: 'مراقبت بعد از هایفوتراپی', category: 'درباره درمان‌ها', date: '۱۴۰۵.۰۶.۱۳' },
-      { slug: '', title: 'مزوژل پوست‌ساز چیست؟', category: 'مراقبت پوست', date: '۱۴۰۵.۰۶.۰۱' },
-      { slug: '', title: 'روتین ساده برای پوست حساس', category: 'عادت‌های روزانه', date: '۱۴۰۵.۰۵.۲۰' },
-    ]
-    : [
-      { slug: 'hifu-aftercare', title: 'HIFU aftercare tips', category: 'About treatments', date: '2026.09.04' },
-      { slug: '', title: 'What is a skin booster?', category: 'Skin care', date: '2026.08.22' },
-      { slug: '', title: 'A simple routine for sensitive skin', category: 'Daily habits', date: '2026.08.10' },
-    ],
-)
-
-const list = computed(() => {
-  const api = data.value?.data ?? []
-  if (!api.length) return fallback.value
-  return api.slice(0, 3).map((p) => ({
-    slug: p.slug,
-    title: locale.value === 'fa' ? p.title_fa || p.title || p.title_en || '' : p.title_en || p.title || p.title_fa || '',
-    category: p.category || (locale.value === 'fa' ? 'ستون زیبایی' : 'Beauty column'),
-    date: p.date || '',
-  }))
-})
+const postsFa = [
+  { id: 1, date: '۲۴ مهر ۱۴۰۵', title: 'چرا پوست بعد از پاییز نیاز به مراقبت بیشتری دارد؟', excerpt: 'تغییر فصل روی رطوبت و شادابی پوست اثر می‌گذارد؛ چند نکته‌ی ساده برای مراقبت روزانه.', img: '/blog/article-01.jpg' },
+  { id: 2, date: '۱۸ مهر ۱۴۰۵', title: 'فیلر یا بوتاکس؛ کدام برای شما مناسب‌تر است؟', excerpt: 'تفاوت این دو روش محبوب و اینکه هر کدام برای چه نوع نگرانی‌ای پیشنهاد می‌شود.', img: '/blog/article-02.jpg' },
+  { id: 3, date: '۰۵ مهر ۱۴۰۵', title: 'سه اشتباه رایج در مراقبت پوستی بعد از لیزر', excerpt: 'برای نتیجه‌ی بهتر درمان لیزر، این نکات را بعد از جلسه رعایت کنید.', img: '/blog/article-03.jpg' },
+]
+const postsEn = [
+  { id: 1, date: 'Oct 16, 2026', title: 'Why skin needs extra care after autumn arrives', excerpt: 'Seasonal change affects skin moisture and glow — a few simple daily tips.', img: '/blog/article-01.jpg' },
+  { id: 2, date: 'Oct 10, 2026', title: 'Filler or Botox — which is right for you?', excerpt: 'The difference between these popular methods and which concerns each one suits.', img: '/blog/article-02.jpg' },
+  { id: 3, date: 'Sep 27, 2026', title: '3 common mistakes after laser skin treatment', excerpt: 'Follow these tips after your session for better results.', img: '/blog/article-03.jpg' },
+]
+const posts = computed(() => (isFa.value ? postsFa : postsEn))
 </script>
 
 <template>
-  <section class="w-full bg-pegasus-cream py-14 sm:py-20">
-    <div class="mx-auto max-w-[1400px] px-page">
-      <div v-fade-up class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <section id="blog" class="w-full bg-white px-page py-16 md:py-24">
+    <div class="mx-auto max-w-7xl">
+      <div class="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p class="font-latin text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{{ h.blog.eyebrow }}</p>
-          <h2 class="mt-2 font-hero text-[clamp(1.6rem,3.5vw,2.4rem)]">{{ h.blog.title }}</h2>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span v-for="cat in h.blog.categories" :key="cat"
-              class="rounded-full bg-pegasus-sand px-3 py-1 text-[12px] font-semibold text-on-surface-variant">
-              {{ cat }}
-            </span>
-          </div>
+          <p class="font-display text-sm tracking-[0.4em] text-muted">{{ isFa ? 'BEAUTY COLUMN' : 'BEAUTY COLUMN' }}</p>
+          <h2 class="mt-3 font-display text-[clamp(1.5rem,2.8vw,2.25rem)] font-bold text-ink">
+            {{ isFa ? 'ستون زیبایی' : 'Beauty Column' }}
+          </h2>
         </div>
-        <NuxtLink to="/blog"
-          class="inline-flex h-11 items-center rounded-full border border-outline-variant/40 px-5 text-[13px] font-bold text-primary">
-          {{ h.blog.viewAll }}
-        </NuxtLink>
+        <a href="#" class="inline-flex items-center gap-2 text-[13px] font-semibold text-primary hover:underline">
+          {{ isFa ? 'مشاهده‌ی همه' : 'View all' }}
+          <Icon name="ph:arrow-left" class="h-4 w-4 rtl:rotate-180" />
+        </a>
       </div>
 
-      <div class="mt-10 grid gap-4 md:grid-cols-3">
-        <NuxtLink v-for="post in list" :key="post.title" v-fade-up :to="post.slug ? `/blog/${post.slug}` : '/blog'"
-          class="block rounded-2xl bg-pegasus-sand p-5 transition hover:bg-[#e9edc9]">
-          <p class="font-latin text-[11px] text-on-surface-variant">
-            <span v-if="post.date">{{ post.date }}</span>
-            <span v-if="post.date && post.category" class="mx-2 text-outline-variant">|</span>
-            <span>{{ post.category }}</span>
-          </p>
-          <h3 class="mt-2 text-[16px] font-bold text-on-surface">{{ post.title }}</h3>
-        </NuxtLink>
+      <div class="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <article v-for="p in posts" :key="p.id" class="group">
+          <a href="#" class="block">
+            <div class="aspect-4/3 overflow-hidden rounded-2xl">
+              <img :src="p.img" :alt="p.title" loading="lazy"
+                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            </div>
+            <p class="mt-4 text-[11px] font-semibold text-primary">{{ p.date }}</p>
+            <h3 class="mt-1 text-[15px] font-bold leading-7 text-ink">{{ p.title }}</h3>
+            <p class="mt-2 text-[13px] leading-7 text-muted">{{ p.excerpt }}</p>
+          </a>
+        </article>
       </div>
     </div>
   </section>

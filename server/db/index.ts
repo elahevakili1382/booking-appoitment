@@ -1,35 +1,342 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import Database from 'better-sqlite3'
 import { SCHEMA_SQL } from './schema'
 import { tehranToday } from '../utils/dates'
 
 let _db: Database.Database | null = null
 
-function dbPath() {
-  const config = useRuntimeConfig()
-  if (config.dbPath) return String(config.dbPath)
-  const dir = join(process.cwd(), 'data')
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  return join(dir, 'lumina.sqlite')
+interface SeedService {
+  id: string
+  titleFa: string
+  titleEn: string
+  category?: string
+  duration: number
+  price: number
+  location: string
+  color: string
+  active: boolean
+  descriptionFa?: string
+  descriptionEn?: string
 }
 
-export function getDb() {
-  if (_db) return _db
-  const path = dbPath()
-  const isNew = !existsSync(path)
-  _db = new Database(path)
-  _db.pragma('journal_mode = WAL')
-  _db.pragma('foreign_keys = ON')
-  _db.exec(SCHEMA_SQL)
-  if (isNew || needsSeed(_db)) {
-    seedFromJson(_db)
+interface SeedDoctor {
+  id: string
+  nameFa: string
+  nameEn: string
+  roleFa: string
+  roleEn: string
+  image?: string
+  active: boolean
+}
+
+interface SeedCustomer {
+  id: string
+  name: string
+  phone: string
+  fileNo: string
+  lastVisit: string
+  tag?: string
+}
+
+interface SeedBooking {
+  id: string
+  code: string
+  branch: string
+  service: string
+  doctor: string
+  visitType: string
+  date?: string
+  time?: string
+  when: string
+  name: string
+  phone: string
+  notes?: string
+  total: number
+  status: string
+  createdAt: string
+}
+
+interface SeedCalendarSlot {
+  id: string
+  date?: string
+  staffId: string
+  startHour: number
+  startMin: number
+  durationMin: number
+  patientFa: string
+  serviceFa: string
+  status: string
+  price?: number
+  fileNo?: string
+  allergyFa?: string
+  meet?: boolean
+}
+
+interface SeedData {
+  services?: SeedService[]
+  doctors?: SeedDoctor[]
+  customers?: SeedCustomer[]
+  bookings?: SeedBooking[]
+  calendarSlots?: SeedCalendarSlot[]
+  availability?: {
+    days: Array<{
+      ranges: Array<{
+        start: string
+        end: string
+      }>
+    }>
   }
-  return _db
+  stats?: Record<string, number>
+}
+
+interface DemoService {
+  id: string
+  category: string
+  titleFa: string
+  titleEn: string
+  descriptionFa: string
+  descriptionEn: string
+  duration: number
+  price: number
+}
+
+const CATEGORY_MAP: Record<string, string> = {
+  hifu: 'skin',
+  profhilo: 'injectables',
+  filler: 'injectables',
+  consult: 'skin',
+  bridal: 'packages',
+}
+
+// قیمت‌ها و زمان‌های این فهرست صرفاً برای دموی نمونه‌کار هستند.
+const DEMO_SERVICES: DemoService[] = [
+  {
+    id: 'skin-consultation',
+    category: 'skin',
+    titleFa: 'مشاوره تخصصی پوست',
+    titleEn: 'Skin Consultation',
+    descriptionFa:
+      'جلسه ارزیابی وضعیت پوست و گفت‌وگو درباره گزینه‌های مراقبتی و درمانی.',
+    descriptionEn:
+      'An assessment of your skin and a discussion of care options.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'facial-care',
+    category: 'skin',
+    titleFa: 'پاکسازی و مراقبت پوست',
+    titleEn: 'Facial Care',
+    descriptionFa:
+      'بررسی نیاز پوست و انتخاب مراحل پاکسازی و مراقبت متناسب با آن.',
+    descriptionEn:
+      'A tailored cleansing and skin care session.',
+    duration: 60,
+    price: 850000,
+  },
+  {
+    id: 'microneedling',
+    category: 'skin',
+    titleFa: 'میکرونیدلینگ',
+    titleEn: 'Microneedling',
+    descriptionFa:
+      'جلسه مشاوره و بررسی مناسب‌بودن میکرونیدلینگ برای دغدغه‌های پوستی شما.',
+    descriptionEn:
+      'Assessment and consultation for microneedling.',
+    duration: 60,
+    price: 1800000,
+  },
+  {
+    id: 'chemical-peel',
+    category: 'skin',
+    titleFa: 'پیلینگ شیمیایی',
+    titleEn: 'Chemical Peel',
+    descriptionFa:
+      'انتخاب نوع و شدت لایه‌برداری پس از ارزیابی پوست توسط پزشک.',
+    descriptionEn:
+      'A peel selected following a professional skin assessment.',
+    duration: 45,
+    price: 1200000,
+  },
+  {
+    id: 'acne-consultation',
+    category: 'skin',
+    titleFa: 'مشاوره آکنه و جای جوش',
+    titleEn: 'Acne & Acne Scar Consultation',
+    descriptionFa:
+      'بررسی آکنه و جای جوش و تنظیم برنامه درمانی متناسب با شرایط فرد.',
+    descriptionEn:
+      'An assessment of acne and acne scars to discuss a care plan.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'pigmentation-consultation',
+    category: 'skin',
+    titleFa: 'مشاوره لک و تیرگی پوست',
+    titleEn: 'Pigmentation Consultation',
+    descriptionFa:
+      'ارزیابی لک‌های پوستی و بررسی گزینه‌های مناسب مراقبت و درمان.',
+    descriptionEn:
+      'An assessment of pigmentation concerns and care options.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'botulinum-consultation',
+    category: 'injectables',
+    titleFa: 'مشاوره تزریق بوتاکس',
+    titleEn: 'Botulinum Toxin Consultation',
+    descriptionFa:
+      'بررسی شرایط فرد، نواحی موردنظر و مناسب‌بودن تزریق پیش از اقدام.',
+    descriptionEn:
+      'A consultation to assess suitability and discuss treatment areas.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'lip-filler-consultation',
+    category: 'injectables',
+    titleFa: 'مشاوره فیلر لب',
+    titleEn: 'Lip Filler Consultation',
+    descriptionFa:
+      'بررسی فرم لب، انتظارات و گزینه‌های تزریق در جلسه مشاوره.',
+    descriptionEn:
+      'A consultation about lip shape, expectations and filler options.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'facial-filler-consultation',
+    category: 'injectables',
+    titleFa: 'مشاوره فیلر صورت',
+    titleEn: 'Facial Filler Consultation',
+    descriptionFa:
+      'ارزیابی نواحی موردنظر صورت و توضیح محدودیت‌ها و گزینه‌های موجود.',
+    descriptionEn:
+      'An assessment of facial areas and a discussion of available options.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'laser-hair-reduction',
+    category: 'laser',
+    titleFa: 'لیزر موهای زائد',
+    titleEn: 'Laser Hair Reduction',
+    descriptionFa:
+      'بررسی پوست، مو و ناحیه موردنظر پیش از تعیین برنامه جلسات لیزر.',
+    descriptionEn:
+      'Assessment of skin, hair and treatment areas before planning sessions.',
+    duration: 45,
+    price: 950000,
+  },
+  {
+    id: 'laser-skin-consultation',
+    category: 'laser',
+    titleFa: 'مشاوره لیزر پوست',
+    titleEn: 'Skin Laser Consultation',
+    descriptionFa:
+      'بررسی دغدغه‌های پوستی و مناسب‌بودن روش‌های لیزری موجود در کلینیک.',
+    descriptionEn:
+      'A consultation about skin concerns and available laser options.',
+    duration: 30,
+    price: 0,
+  },
+  {
+    id: 'hair-loss-consultation',
+    category: 'hair',
+    titleFa: 'مشاوره ریزش مو',
+    titleEn: 'Hair Loss Consultation',
+    descriptionFa:
+      'بررسی وضعیت پوست سر و الگوی ریزش مو برای تعیین مسیر ارزیابی و درمان.',
+    descriptionEn:
+      'An assessment of the scalp and hair loss pattern.',
+    duration: 30,
+    price: 0,
+  },
+]
+
+function dbPath() {
+  const config = useRuntimeConfig()
+
+  const path = config.dbPath
+    ? String(config.dbPath)
+    : join(process.cwd(), 'data', 'lumina.sqlite')
+
+  if (path !== ':memory:') {
+    const dir = dirname(path)
+
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+  }
+
+  return path
+}
+
+function migrateDatabase(db: Database.Database) {
+  const columns = db
+    .prepare('PRAGMA table_info(staff)')
+    .all() as Array<{ name: string }>
+
+  if (!columns.some((column) => column.name === 'image_url')) {
+    db.exec(`
+      ALTER TABLE staff
+      ADD COLUMN image_url TEXT DEFAULT ''
+    `)
+  }
+}
+
+function fillMissingStaffImages(db: Database.Database) {
+  db.prepare(`
+    UPDATE staff
+    SET image_url = '/doctors/' || id || '.jpg'
+    WHERE image_url IS NULL OR TRIM(image_url) = ''
+  `).run()
+}
+
+export function getDb(): Database.Database {
+  if (_db) return _db
+
+  const path = dbPath()
+  const isNew = path === ':memory:' || !existsSync(path)
+
+  const db = new Database(path)
+
+  try {
+    db.pragma('journal_mode = WAL')
+    db.pragma('foreign_keys = ON')
+
+    db.exec(SCHEMA_SQL)
+
+    migrateDatabase(db)
+
+    if (isNew || needsSeed(db)) {
+      seedFromJson(db)
+    }
+
+    fillMissingStaffImages(db)
+
+    // خدمات جدید برای دیتابیس‌های قبلی هم اضافه می‌شوند.
+    addDemoServices(db)
+
+    // فقط پس از تکمیل موفق راه‌اندازی، اتصال را نگه می‌داریم.
+    _db = db
+
+    return db
+  }
+  catch (error) {
+    db.close()
+    throw error
+  }
 }
 
 function needsSeed(db: Database.Database) {
-  const row = db.prepare('SELECT COUNT(*) AS c FROM staff').get() as { c: number }
+  const row = db
+    .prepare('SELECT COUNT(*) AS c FROM staff')
+    .get() as { c: number }
+
   return row.c === 0
 }
 
@@ -39,194 +346,304 @@ function nowIso() {
 
 function seedFromJson(db: Database.Database) {
   const seedPath = join(process.cwd(), 'data', 'store.json')
+
   if (!existsSync(seedPath)) return
-  const raw = JSON.parse(readFileSync(seedPath, 'utf-8')) as {
-    services: Array<{
-      id: string
-      titleFa: string
-      titleEn: string
-      duration: number
-      price: number
-      location: string
-      color: string
-      active: boolean
-    }>
-    doctors: Array<{
-      id: string
-      nameFa: string
-      nameEn: string
-      roleFa: string
-      roleEn: string
-      active: boolean
-    }>
-    customers: Array<{
-      id: string
-      name: string
-      phone: string
-      fileNo: string
-      lastVisit: string
-      tag?: string
-    }>
-    bookings: Array<{
-      id: string
-      code: string
-      branch: string
-      service: string
-      doctor: string
-      visitType: string
-      date?: string
-      time?: string
-      when: string
-      name: string
-      phone: string
-      notes?: string
-      total: number
-      status: string
-      createdAt: string
-    }>
-    calendarSlots?: Array<{
-      id: string
-      date: string
-      staffId: string
-      startHour: number
-      startMin: number
-      durationMin: number
-      patientFa: string
-      serviceFa: string
-      status: string
-      price?: number
-      fileNo?: string
-      allergyFa?: string
-      meet?: boolean
-    }>
-    availability?: {
-      days: Array<{ ranges: Array<{ start: string; end: string }> }>
-    }
-    stats?: Record<string, number>
-  }
+
+  const raw = JSON.parse(
+    readFileSync(seedPath, 'utf-8'),
+  ) as SeedData
+
+  const doctors = raw.doctors || []
+  const services = raw.services || []
+  const customers = raw.customers || []
+  const bookings = raw.bookings || []
+  const calendarSlots = raw.calendarSlots || []
 
   const insertStaff = db.prepare(`
-    INSERT OR IGNORE INTO staff (id, name_fa, name_en, role_fa, role_en, active, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO staff (
+      id,
+      name_fa,
+      name_en,
+      role_fa,
+      role_en,
+      image_url,
+      active,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
+
   const insertService = db.prepare(`
-    INSERT OR IGNORE INTO services (id, title_fa, title_en, category, duration, price, location, color, active, description_fa, description_en)
+    INSERT OR IGNORE INTO services (
+      id,
+      title_fa,
+      title_en,
+      category,
+      duration,
+      price,
+      location,
+      color,
+      active,
+      description_fa,
+      description_en
+    )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
+
   const insertStaffService = db.prepare(`
-    INSERT OR IGNORE INTO staff_services (staff_id, service_id) VALUES (?, ?)
+    INSERT OR IGNORE INTO staff_services (
+      staff_id,
+      service_id
+    )
+    VALUES (?, ?)
   `)
+
   const insertShift = db.prepare(`
-    INSERT OR IGNORE INTO shifts (id, staff_id, weekday, start_time, end_time) VALUES (?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO shifts (
+      id,
+      staff_id,
+      weekday,
+      start_time,
+      end_time
+    )
+    VALUES (?, ?, ?, ?, ?)
   `)
+
   const insertCustomer = db.prepare(`
-    INSERT OR IGNORE INTO customers (id, name, phone, file_no, last_visit, tag, notes, allergy, created_at)
+    INSERT OR IGNORE INTO customers (
+      id,
+      name,
+      phone,
+      file_no,
+      last_visit,
+      tag,
+      notes,
+      allergy,
+      created_at
+    )
     VALUES (?, ?, ?, ?, ?, ?, '', '', ?)
   `)
+
   const insertBooking = db.prepare(`
     INSERT OR IGNORE INTO bookings (
-      id, code, customer_id, staff_id, service_id, branch, visit_type,
-      starts_at, ends_at, status, name, phone, notes, total, deposit, payment_status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'unpaid', ?)
+      id,
+      code,
+      customer_id,
+      staff_id,
+      service_id,
+      branch,
+      visit_type,
+      starts_at,
+      ends_at,
+      status,
+      name,
+      phone,
+      notes,
+      total,
+      deposit,
+      payment_status,
+      created_at
+    )
+    VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      0, 'unpaid', ?
+    )
   `)
-  const insertSetting = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`)
+
+  const insertSetting = db.prepare(`
+    INSERT OR IGNORE INTO settings (key, value)
+    VALUES (?, ?)
+  `)
+
   const insertPost = db.prepare(`
-    INSERT OR IGNORE INTO blog_posts (id, slug, title_fa, title_en, excerpt_fa, excerpt_en, body_fa, body_en, published_at)
+    INSERT OR IGNORE INTO blog_posts (
+      id,
+      slug,
+      title_fa,
+      title_en,
+      excerpt_fa,
+      excerpt_en,
+      body_fa,
+      body_en,
+      published_at
+    )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
+
   const insertUser = db.prepare(`
-    INSERT OR IGNORE INTO users (id, phone, name, role, created_at) VALUES (?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO users (
+      id,
+      phone,
+      name,
+      role,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?)
   `)
 
-  const categoryMap: Record<string, string> = {
-    hifu: 'skin',
-    profhilo: 'injectables',
-    filler: 'injectables',
-    consult: 'skin',
-    bridal: 'packages',
-  }
+  const updateCustomerAllergy = db.prepare(`
+    UPDATE customers
+    SET allergy = ?
+    WHERE name = ?
+  `)
 
   const tx = db.transaction(() => {
-    insertUser.run('admin-1', '09120000000', 'مدیر لومینا', 'admin', nowIso())
-    insertUser.run('reception-1', '09121111111', 'منشی', 'receptionist', nowIso())
+    insertUser.run(
+      'admin-1',
+      '09120000000',
+      'مدیر لومینا',
+      'admin',
+      nowIso(),
+    )
 
-    for (const d of raw.doctors || []) {
-      insertStaff.run(d.id, d.nameFa, d.nameEn, d.roleFa, d.roleEn, d.active ? 1 : 0, nowIso())
+    insertUser.run(
+      'reception-1',
+      '09121111111',
+      'منشی',
+      'receptionist',
+      nowIso(),
+    )
+
+    for (const doctor of doctors) {
+      insertStaff.run(
+        doctor.id,
+        doctor.nameFa,
+        doctor.nameEn,
+        doctor.roleFa,
+        doctor.roleEn,
+        doctor.image || `/doctors/${doctor.id}.jpg`,
+        doctor.active ? 1 : 0,
+        nowIso(),
+      )
     }
 
-    for (const s of raw.services || []) {
+    for (const service of services) {
       insertService.run(
-        s.id,
-        s.titleFa,
-        s.titleEn,
-        categoryMap[s.id] || 'skin',
-        s.duration,
-        s.price,
-        s.location,
-        s.color,
-        s.active ? 1 : 0,
-        s.titleFa,
-        s.titleEn,
+        service.id,
+        service.titleFa,
+        service.titleEn,
+        service.category || CATEGORY_MAP[service.id] || 'skin',
+        service.duration,
+        service.price,
+        service.location,
+        service.color,
+        service.active ? 1 : 0,
+        service.descriptionFa || service.titleFa,
+        service.descriptionEn || service.titleEn,
       )
-      for (const d of raw.doctors || []) {
-        insertStaffService.run(d.id, s.id)
+
+      // حفظ رفتار seed قبلی برای خدمات اولیه پروژه.
+      // در نسخه واقعی، این رابطه باید بر اساس صلاحیت پزشک تنظیم شود.
+      for (const doctor of doctors) {
+        insertStaffService.run(doctor.id, service.id)
       }
     }
 
     const days = raw.availability?.days || []
-    for (const d of raw.doctors || []) {
+
+    for (const doctor of doctors) {
       for (let weekday = 0; weekday < 7; weekday++) {
         const ranges = days[weekday]?.ranges || []
-        ranges.forEach((r, idx) => {
-          insertShift.run(`${d.id}-${weekday}-${idx}`, d.id, weekday, r.start, r.end)
+
+        ranges.forEach((range, index) => {
+          insertShift.run(
+            `${doctor.id}-${weekday}-${index}`,
+            doctor.id,
+            weekday,
+            range.start,
+            range.end,
+          )
         })
       }
     }
 
-    for (const c of raw.customers || []) {
-      insertCustomer.run(c.id, c.name, c.phone, c.fileNo, c.lastVisit, c.tag || '', nowIso())
-    }
-
-    for (const b of raw.bookings || []) {
-      const staffId = doctorToStaffId(b.doctor)
-      const serviceId = (raw.services || []).find((s) => s.titleFa === b.service || s.titleEn === b.service)?.id || 'consult'
-      const service = (raw.services || []).find((s) => s.id === serviceId)
-      const duration = service?.duration || 45
-      const date = b.date || tehranToday()
-      const timeMatch = (b.time || b.when || '').match(/(\d{1,2}):(\d{2})/)
-      const hh = timeMatch ? Number(timeMatch[1]) : 10
-      const mm = timeMatch ? Number(timeMatch[2]) : 0
-      const startsAt = toUtcIso(date, hh, mm)
-      const endsAt = toUtcIso(date, hh, mm, duration)
-      const customer = (raw.customers || []).find((c) => c.phone === b.phone)
-      insertBooking.run(
-        b.id,
-        b.code,
-        customer?.id || null,
-        staffId,
-        serviceId,
-        b.branch,
-        b.visitType,
-        startsAt,
-        endsAt,
-        mapStatus(b.status),
-        b.name,
-        b.phone,
-        b.notes || '',
-        b.total,
-        b.createdAt,
+    for (const customer of customers) {
+      insertCustomer.run(
+        customer.id,
+        customer.name,
+        customer.phone,
+        customer.fileNo,
+        customer.lastVisit,
+        customer.tag || '',
+        nowIso(),
       )
     }
 
-    // seed calendar demo slots as bookings for today
-    const today = tehranToday()
-    for (const slot of raw.calendarSlots || []) {
-      if (slot.status === 'buffer') continue
-      const date = slot.date || today
-      const startsAt = toUtcIso(date, slot.startHour, slot.startMin)
-      const endsAt = toUtcIso(date, slot.startHour, slot.startMin, slot.durationMin)
+    for (const booking of bookings) {
+      const staffId = doctorToStaffId(booking.doctor)
+
       const serviceId =
-        (raw.services || []).find((s) => s.titleFa === slot.serviceFa)?.id || 'consult'
+        services.find(
+          (service) =>
+            service.titleFa === booking.service ||
+            service.titleEn === booking.service,
+        )?.id || 'consult'
+
+      const service = services.find(
+        (item) => item.id === serviceId,
+      )
+
+      const duration = service?.duration || 45
+      const date = booking.date || tehranToday()
+
+      const timeMatch = (
+        booking.time || booking.when || ''
+      ).match(/(\d{1,2}):(\d{2})/)
+
+      const hour = timeMatch ? Number(timeMatch[1]) : 10
+      const minute = timeMatch ? Number(timeMatch[2]) : 0
+
+      const startsAt = toUtcIso(date, hour, minute)
+      const endsAt = toUtcIso(date, hour, minute, duration)
+
+      const customer = customers.find(
+        (item) => item.phone === booking.phone,
+      )
+
+      insertBooking.run(
+        booking.id,
+        booking.code,
+        customer?.id || null,
+        staffId,
+        serviceId,
+        booking.branch,
+        booking.visitType,
+        startsAt,
+        endsAt,
+        mapStatus(booking.status),
+        booking.name,
+        booking.phone,
+        booking.notes || '',
+        booking.total,
+        booking.createdAt,
+      )
+    }
+
+    const today = tehranToday()
+
+    for (const slot of calendarSlots) {
+      if (slot.status === 'buffer') continue
+
+      const date = slot.date || today
+
+      const startsAt = toUtcIso(
+        date,
+        slot.startHour,
+        slot.startMin,
+      )
+
+      const endsAt = toUtcIso(
+        date,
+        slot.startHour,
+        slot.startMin,
+        slot.durationMin,
+      )
+
+      const serviceId =
+        services.find(
+          (service) => service.titleFa === slot.serviceFa,
+        )?.id || 'consult'
+
       insertBooking.run(
         slot.id,
         slot.fileNo || `LM-${slot.id}`,
@@ -244,17 +661,22 @@ function seedFromJson(db: Database.Database) {
         slot.price || 0,
         nowIso(),
       )
+
       if (slot.allergyFa && slot.patientFa) {
-        db.prepare(
-          `UPDATE customers SET allergy = ? WHERE name = ?`,
-        ).run(slot.allergyFa, slot.patientFa)
+        updateCustomerAllergy.run(
+          slot.allergyFa,
+          slot.patientFa,
+        )
       }
     }
 
     insertSetting.run('cancelBeforeHours', '24')
     insertSetting.run('timezone', 'Asia/Tehran')
     insertSetting.run('clinicName', 'Lumina Clinic')
-    insertSetting.run('activeRooms', String(raw.stats?.activeRooms ?? 4))
+    insertSetting.run(
+      'activeRooms',
+      String(raw.stats?.activeRooms ?? 4),
+    )
     insertSetting.run('smsProvider', 'mock')
     insertSetting.run('paymentProvider', 'zarinpal-sandbox')
 
@@ -263,21 +685,22 @@ function seedFromJson(db: Database.Database) {
       'hifu-aftercare',
       'مراقبت بعد از هایفوتراپی',
       'HIFU aftercare tips',
-      'راهنمای مراقبت ۷ روزه پس از هایفو',
-      '7-day aftercare guide after HIFU',
-      'پس از هایفوتراپی از گرمای شدید و اسکراب خودداری کنید...',
-      'Avoid heat and scrubbing after HIFU...',
+      'راهنمای مراقبت پس از هایفو',
+      'Aftercare following HIFU',
+      'این متن نمونه است؛ محتوای مراقبتی باید توسط پزشک کلینیک تهیه و تأیید شود.',
+      'Demo content. Aftercare instructions must be prepared and approved by the clinic physician.',
       nowIso(),
     )
+
     insertPost.run(
       'post-2',
       'filler-myths',
       'باورهای غلط درباره فیلر',
-      'Filler myths debunked',
-      'آنچه باید قبل از تزریق بدانید',
-      'What to know before fillers',
-      'فیلر طبیعی وقتی توسط پزشک مجرب تزریق شود ایمن است...',
-      'Natural fillers are safe with an experienced doctor...',
+      'Filler myths',
+      'پرسش‌هایی که پیش از تزریق باید مطرح کنید',
+      'Questions to discuss before treatment',
+      'این متن نمونه است؛ توضیحات مربوط به مزایا، خطرها و محدودیت‌ها باید توسط پزشک کلینیک تأیید شود.',
+      'Demo content. Benefits, risks and limitations must be reviewed by the clinic physician.',
       nowIso(),
     )
   })
@@ -285,43 +708,119 @@ function seedFromJson(db: Database.Database) {
   tx()
 }
 
+function addDemoServices(db: Database.Database) {
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO services (
+      id,
+      title_fa,
+      title_en,
+      category,
+      duration,
+      price,
+      location,
+      color,
+      active,
+      description_fa,
+      description_en
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const tx = db.transaction(() => {
+    for (const service of DEMO_SERVICES) {
+      insert.run(
+        service.id,
+        service.titleFa,
+        service.titleEn,
+        service.category,
+        service.duration,
+        service.price,
+        'کلینیک لومینا',
+        '#CBA47D',
+        1,
+        service.descriptionFa,
+        service.descriptionEn,
+      )
+    }
+  })
+
+  tx()
+}
+
 function doctorToStaffId(doctor: string) {
-  const d = doctor.toLowerCase()
-  if (d.includes('rostami') || d.includes('رستمی')) return 'rostami'
-  if (d.includes('bahrami') || d.includes('بهرامی')) return 'bahrami'
-  if (d.includes('kaviani') || d.includes('کاویانی')) return 'kaviani'
+  const value = doctor.toLowerCase()
+
+  if (value.includes('rostami') || value.includes('رستمی')) {
+    return 'rostami'
+  }
+
+  if (value.includes('bahrami') || value.includes('بهرامی')) {
+    return 'bahrami'
+  }
+
+  if (value.includes('kaviani') || value.includes('کاویانی')) {
+    return 'kaviani'
+  }
+
   return 'rostami'
 }
 
-function mapStatus(s: string) {
-  if (['pending', 'confirmed', 'completed', 'cancelled', 'no_show'].includes(s)) return s
+function mapStatus(status: string) {
+  const allowed = [
+    'pending',
+    'confirmed',
+    'completed',
+    'cancelled',
+    'no_show',
+  ]
+
+  return allowed.includes(status) ? status : 'confirmed'
+}
+
+function mapSlotStatus(status: string) {
+  if (status === 'completed' || status === 'paid') {
+    return 'completed'
+  }
+
   return 'confirmed'
 }
 
-function mapSlotStatus(s: string) {
-  if (s === 'completed' || s === 'paid') return 'completed'
-  if (s === 'progress' || s === 'next') return 'confirmed'
-  if (s === 'confirmed') return 'confirmed'
-  return 'confirmed'
-}
+/**
+ * تبدیل تاریخ YYYY-MM-DD و ساعت محلی تهران به UTC.
+ * offset ثابت +03:30 مطابق منطق فعلی پروژه حفظ شده است.
+ */
+export function toUtcIso(
+  date: string,
+  hour: number,
+  minute: number,
+  addMinutes = 0,
+) {
+  const midnight = new Date(
+    `${date}T00:00:00+03:30`,
+  )
 
-/** ساخت ISO UTC از تاریخ تهران YYYY-MM-DD و ساعت محلی */
-export function toUtcIso(date: string, hour: number, min: number, addMinutes = 0) {
-  // ذخیره به‌صورت offset تهران (+03:30) بدون DST پیچیده برای ایران
-  const total = hour * 60 + min + addMinutes
-  const h = Math.floor(total / 60)
-  const m = total % 60
-  const local = `${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+03:30`
-  return new Date(local).toISOString()
+  const totalMinutes = hour * 60 + minute + addMinutes
+
+  return new Date(
+    midnight.getTime() + totalMinutes * 60_000,
+  ).toISOString()
 }
 
 export function getSetting(key: string, fallback = '') {
-  const row = getDb().prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
+  const row = getDb()
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get(key) as { value: string } | undefined
+
   return row?.value ?? fallback
 }
 
 export function setSetting(key: string, value: string) {
-  getDb().prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value)
+  getDb()
+    .prepare(`
+      INSERT OR REPLACE INTO settings (key, value)
+      VALUES (?, ?)
+    `)
+    .run(key, value)
 }
 
 export function newId() {

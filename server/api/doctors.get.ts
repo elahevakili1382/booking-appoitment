@@ -10,6 +10,7 @@ export default defineEventHandler(() => {
       nameEn: d.name_en,
       roleFa: d.role_fa,
       roleEn: d.role_en,
+          imageUrl: d.image_url || '',
       active: Boolean(d.active),
     })),
   }

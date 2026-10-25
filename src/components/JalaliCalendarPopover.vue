@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
-import jalaliday from 'jalaliday'
 import 'dayjs/locale/fa'
 import { onClickOutside } from '@vueuse/core'
 import { useLanguage } from '../i18n/useLanguage'
-
-dayjs.extend(jalaliday)
+import { dayjs, tehranToday } from '../../server/utils/dates'
 
 const props = defineProps<{
     modelIso?: string   // تاریخ انتخاب‌شده‌ی فعلی (YYYY-MM-DD میلادی)
@@ -29,14 +26,12 @@ function d(input?: string | Date) {
 const root = ref<HTMLElement | null>(null)
 onClickOutside(root, () => emit('close'))
 
-const todayIso = dayjs().format('YYYY-MM-DD')
+const todayIso = tehranToday()
 const minIso = computed(() => props.minIso ?? todayIso)
 
 const viewMonth = ref(d(props.modelIso ?? todayIso).startOf('month'))
 watch(calendarSystem, () => {
     viewMonth.value = d(props.modelIso ?? todayIso).startOf('month')
-
-
 })
 
 const weekdaysFa = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج']
