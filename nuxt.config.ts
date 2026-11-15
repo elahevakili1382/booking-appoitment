@@ -6,7 +6,14 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   srcDir: 'src',
   serverDir: 'server',
-  ssr: false, 
+  ssr: true,
+
+  routeRules: {
+    '/dashboard/**': { ssr: false },
+    '/account/**': { ssr: false },
+    '/login': { ssr: false },
+    '/book': { ssr: false },
+  },
 
   dir: {
     public: 'public',
@@ -14,7 +21,21 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  modules: ['@vueuse/nuxt', '@nuxt/icon',  '@nuxt/image'],
+  modules: ['@vueuse/nuxt', '@nuxt/icon',  '@nuxt/image', '@nuxtjs/seo'],
+
+  site: {
+    url: 'https://lumina.clinic',
+    name: 'Lumina Clinic',
+    defaultLocale: 'fa',
+  },
+
+  robots: {
+    disallow: ['/dashboard', '/account', '/login', '/book'],
+  },
+
+  // این دو بعداً فعال می‌شوند: og-image به تصویر واقعی نیاز دارد و schema.org به آدرس/تلفن واقعی کلینیک
+  ogImage: { enabled: false },
+  linkChecker: { enabled: false },
 icon: {
   mode: 'svg',         
   customCollections: [
@@ -33,8 +54,6 @@ app: {
   layoutTransition: { name: 'layout', mode: 'out-in' },
   head: {
     title: 'کلینیک لومینا | Lumina Clinic',
-    titleTemplate: '%s | کلینیک لومینا',    
-    
     htmlAttrs: {
       lang: 'fa',
       dir: 'rtl',
@@ -78,13 +97,16 @@ app: {
     link: [
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
-      { rel: 'canonical', href: 'https://lumina.clinic' },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
       {
         rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap',
+        href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap',
       },
+      {
+  rel: 'stylesheet',
+  href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap',
+},
     ],
   },
 },
@@ -101,13 +123,14 @@ app: {
     zarinpalMerchantId: 'test',
     public: {
       appName: 'Lumina Clinic',
-      otpMock: true,
+      // فقط توسعه؛ در production سرور بدون توجه به این مقدار mock را رد می‌کند
+      otpMock: process.env.NODE_ENV !== 'production',
     },
   },
 
   nitro: {
     externals: {
-      inline: [],
+      inline: ['dayjs'],
     },
     moduleSideEffects: ['better-sqlite3'],
     rollupConfig: {
