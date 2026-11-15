@@ -3,11 +3,14 @@ import { buildDurationSlots, hasConflict } from '../../utils/bookingEngine'
 import { doctorToStaffId } from '../../utils/bookingHelpers'
 import { tehranToday } from '../../utils/dates'
 import { sendSms } from '../../utils/sms'
+import { clientIp, rateLimit } from '../../utils/rateLimit'
 
 /**
- * POST /api/bookings — ایجاد نوبت با قفل تداخل (409)
+ * POST /api/bookings — ایجاد نوبت با قفل تداخل (409). عمداً عمومی است (رزرو مهمان).
  */
 export default defineEventHandler(async (event) => {
+  rateLimit(event, `book-ip:${clientIp(event)}`, 30, 10 * 60_000)
+
   const body = await readBody<{
     branch?: string
     service?: string
@@ -30,6 +33,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing name/phone' })
   }
 
+  // اعتبارسنجی ورودی (تبدیل ارقام فارسی/عربی به لاتین، فرمت موبایل ایران، طول متن‌ها)
+  const toLatin = (s: string) =>
+    s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+  body.phone = toLatin(String(body.phone)).replace(/\D/g, '')
+  body.name = String(body.name).trim()
+  body.notes = body.notes ? String(body.notes).slice(0, 500) : ''
+  if (!/^09\d{9}$/.test(body.phone)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid mobile' })
+  }
+  if (body.name.length < 2 || body.name.length > 100) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid name' })
+  }
+  rateLimit(event, `book-phone:${body.phone}`, 5, 60 * 60_000)
+
   const db = getDb()
   const date = body.date || tehranToday()
 
@@ -49,8 +66,17 @@ export default defineEventHandler(async (event) => {
     title_fa: string
   }
 
-  let staffId = body.staffId && body.staffId !== 'any' ? body.staffId : undefined
-  if (!staffId && body.doctor) staffId = doctorToStaffId(body.doctor)
+  let staffId = body.staffId && body.staffId !== 'any' ? String(body.staffId) : undefined
+  // نام پزشک فقط وقتی استفاده می‌شود که staffId اصلاً ارسال نشده باشد؛ 'any' یعنی «بدون ترجیح»
+  if (!staffId && !body.staffId && body.doctor) {
+    // پزشک بدون نگاشت معتبر هرگز به پزشک دیگری نسبت داده نمی‌شود
+    staffId = doctorToStaffId(body.doctor) ?? undefined
+    if (!staffId) throw createError({ statusCode: 400, statusMessage: 'Unknown doctor' })
+  }
+  if (staffId) {
+    const staffRow = db.prepare('SELECT id FROM staff WHERE id = ? AND active = 1').get(staffId)
+    if (!staffRow) throw createError({ statusCode: 400, statusMessage: 'Unknown doctor' })
+  }
 
   let startsAt = body.startsAt
   let endsAt: string | undefined
@@ -96,6 +122,28 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Cannot book a past time' })
   }
 
+  // مبلغ از قیمت خدمت در سرور می‌آید (نه از کلاینت)؛ بیعانه بین صفر و مبلغ محدود می‌شود
+  const total = service.price
+  const deposit = Math.min(Math.max(Number(body.deposit) || 0, 0), total)
+
+  // جلوگیری از ثبت تکراری و احتکار زمان‌ها
+  const duplicate = db
+    .prepare(
+      `SELECT id FROM bookings WHERE phone = ? AND service_id = ? AND starts_at = ?
+       AND status NOT IN ('cancelled','no_show')`,
+    )
+    .get(body.phone, serviceId, startsAt)
+  if (duplicate) throw createError({ statusCode: 409, statusMessage: 'Duplicate booking' })
+
+  const active = db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM bookings WHERE phone = ? AND status IN ('confirmed','pending') AND starts_at > ?`,
+    )
+    .get(body.phone, new Date().toISOString()) as { c: number }
+  if (active.c >= 5) {
+    throw createError({ statusCode: 429, statusMessage: 'Too many active bookings' })
+  }
+
   const code = newBookingCode()
   const id = newId()
   const createdAt = new Date().toISOString()
@@ -108,9 +156,9 @@ export default defineEventHandler(async (event) => {
        VALUES (?, ?, ?, ?, ?, '', '', ?, ?)`,
     ).run(cid, body.name, body.phone, code, date, body.notes || '', createdAt)
     customer = { id: cid }
-  } else {
-    db.prepare(`UPDATE customers SET name = ?, last_visit = ? WHERE id = ?`).run(body.name, date, customer.id)
   }
+  // مشتری موجود: نام و اطلاعات پروفایل با داده‌ی ارسالی مهمان تغییر نمی‌کند.
+  // این رزرو فقط با شماره به رکورد مشتری وصل می‌شود؛ حساب کاربری فقط با تأیید OTP متصل می‌شود.
 
   try {
     db.prepare(
@@ -131,8 +179,8 @@ export default defineEventHandler(async (event) => {
       body.name,
       body.phone,
       body.notes || '',
-      body.total ?? service.price,
-      body.deposit || 0,
+      total,
+      deposit,
       createdAt,
     )
   } catch {
@@ -166,7 +214,7 @@ export default defineEventHandler(async (event) => {
       time,
       name: body.name,
       phone: body.phone,
-      total: body.total ?? service.price,
+      total,
       status: 'confirmed',
       createdAt,
     },

@@ -1,27 +1,62 @@
 import { getDb } from '../../db'
 import { canCancelBooking, getCancelBeforeHours, hasConflict } from '../../utils/bookingEngine'
 import { toUtcIso } from '../../db'
+import { requireUser, ownStaffIds, userOwnsBooking } from '../../utils/auth'
+
+const STATUSES = ['confirmed', 'pending', 'completed', 'cancelled', 'no_show']
+const STAFF_FIELDS = ['status', 'notes']
+const CUSTOMER_FIELDS = ['status']
 
 /**
- * PATCH /api/bookings/:id — تغییر وضعیت / جابجایی با چک تداخل و سیاست لغو
+ * PATCH /api/bookings/:id
+ * - admin / receptionist: همه تغییرات (وضعیت، جابجایی، یادداشت)
+ * - staff (پزشک): فقط رزروهای خودش و فقط وضعیت/یادداشت (بدون جابجایی یا تغییر پزشک)
+ * - customer: فقط لغو رزرو متعلق به خودش، طبق سیاست لغو
+ * مالکیت فقط از داده‌ی سمت سرور (نشست و اتصال customers.user_id) بررسی می‌شود.
  */
 export default defineEventHandler(async (event) => {
+  const user = requireUser(event)
+  const role = String(user.role)
+  const isOps = role === 'admin' || role === 'receptionist'
+  const isStaff = role === 'staff'
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing id' })
 
-  const body = await readBody<{
-    status?: string
-    staffId?: string
-    date?: string
-    time?: string
-    startsAt?: string
-    endsAt?: string
-    notes?: string
-  }>(event)
+  const body =
+    (await readBody<{
+      status?: string
+      staffId?: string
+      date?: string
+      time?: string
+      startsAt?: string
+      endsAt?: string
+      notes?: string
+    }>(event)) || {}
+
+  if (body.status !== undefined && !STATUSES.includes(String(body.status))) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid status' })
+  }
 
   const db = getDb()
   const row = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id) as Record<string, unknown> | undefined
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
+
+  const keys = Object.keys(body).filter((k) => (body as Record<string, unknown>)[k] !== undefined)
+
+  if (!isOps) {
+    if (isStaff) {
+      if (!ownStaffIds(user.id).includes(String(row.staff_id)) || keys.some((k) => !STAFF_FIELDS.includes(k))) {
+        throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+      }
+    } else if (
+      role !== 'customer' ||
+      !userOwnsBooking(user.id, row) ||
+      body.status !== 'cancelled' ||
+      keys.some((k) => !CUSTOMER_FIELDS.includes(k))
+    ) {
+      throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+    }
+  }
 
   if (body.status === 'cancelled') {
     const hours = getCancelBeforeHours()
