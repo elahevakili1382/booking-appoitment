@@ -126,13 +126,14 @@ export function useAvailability() {
   }
 
   function enableDay(dayIndex: number, start = '09:00', end = '17:00') {
-    if (!schedule.value.days[dayIndex].ranges.length) {
+    if (!schedule.value.days[dayIndex]?.ranges.length) {
       schedule.value.days[dayIndex] = { ranges: [{ start, end }] }
     }
   }
 
   function addRange(dayIndex: number) {
     const day = schedule.value.days[dayIndex]
+    if (!day) return
     const last = day.ranges[day.ranges.length - 1]
     const start = last ? fromMinutes(Math.min(toMinutes(last.end) + 60, 20 * 60)) : '09:00'
     const end = fromMinutes(Math.min(toMinutes(start) + 120, 21 * 60))
@@ -141,11 +142,12 @@ export function useAvailability() {
 
   function removeRange(dayIndex: number, rangeIndex: number) {
     const day = schedule.value.days[dayIndex]
+    if (!day) return
     day.ranges.splice(rangeIndex, 1)
   }
 
   function updateRange(dayIndex: number, rangeIndex: number, patch: Partial<TimeRange>) {
-    const r = schedule.value.days[dayIndex].ranges[rangeIndex]
+    const r = schedule.value.days[dayIndex]?.ranges[rangeIndex]
     if (!r) return
     Object.assign(r, patch)
     if (toMinutes(r.start) >= toMinutes(r.end)) {

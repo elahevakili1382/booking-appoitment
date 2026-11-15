@@ -91,8 +91,8 @@ export function buildDurationSlots(opts: {
 
         const blocked = timeOff.some((t) => {
           if (!t.start_time || !t.end_time) return false
-          const [oh, om] = t.start_time.split(':').map(Number)
-          const [eh, em] = t.end_time.split(':').map(Number)
+          const [oh = 0, om = 0] = t.start_time.split(':').map(Number)
+          const [eh = 0, em = 0] = t.end_time.split(':').map(Number)
           return rangesOverlap(startsAt, endsAt, toUtcIso(opts.date, oh, om), toUtcIso(opts.date, eh, em))
         })
         const taken = blocked || hasConflict(staffId, startsAt, endsAt)

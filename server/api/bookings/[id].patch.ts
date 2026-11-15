@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
 
   if (body.date && body.time) {
     const svc = db.prepare('SELECT duration FROM services WHERE id = ?').get(row.service_id) as { duration: number }
-    const [hh, mm] = body.time.split(':').map(Number)
+    const [hh = 0, mm = 0] = body.time.split(':').map(Number)
     startsAt = toUtcIso(body.date, hh, mm)
     endsAt = toUtcIso(body.date, hh, mm, svc.duration)
   }

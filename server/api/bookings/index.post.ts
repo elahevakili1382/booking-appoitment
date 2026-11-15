@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
   let time = body.time
 
   if (!startsAt && time) {
-    const [hh, mm] = time.split(':').map(Number)
+    const [hh = 0, mm = 0] = time.split(':').map(Number)
     startsAt = toUtcIso(date, hh, mm)
     endsAt = toUtcIso(date, hh, mm, service.duration)
   }

@@ -182,7 +182,7 @@ watch(
 
   watch(
     branches,
-    (list) => {
+    (list: readonly string[]) => {
       if (list.includes(branch.value)) return
 
       const query = typeof route.query.branch === 'string'
