@@ -27,3 +27,9 @@ dist/
 /data/*.sqlite
 /data/*.sqlite-wal
 /data/*.sqlite-shm
+
+# AI assistant tooling and internal notes (not part of the app)
+.agents/
+.claude/
+skills-lock.json
+REPORT.md
