@@ -1,15 +1,12 @@
 /**
- * محافظت داشبورد — نقش admin یا receptionist
- * در dev اگر session نباشد، اجازه ورود می‌دهد ولی لاگ می‌کند.
+ * هدایت صفحه‌ی داشبورد — فقط admin / receptionist / staff.
+ * محافظت اصلی داده‌ها سمت سرور است (requireUser در APIها)؛ این middleware فقط تجربه‌ی کاربر را درست می‌کند.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
   if (!to.path.startsWith('/dashboard')) return
-  try {
-    const me = await $fetch<{ user: { role: string } | null }>('/api/auth/me')
-    if (me.user && !['admin', 'receptionist', 'staff'].includes(me.user.role)) {
-      return navigateTo('/')
-    }
-  } catch {
-    /* allow in local demo */
-  }
+
+  const me = await $fetch<{ user: { role: string } | null }>('/api/auth/me').catch(() => ({ user: null }))
+
+  if (!me.user) return navigateTo('/login')
+  if (!['admin', 'receptionist', 'staff'].includes(me.user.role)) return navigateTo('/')
 })

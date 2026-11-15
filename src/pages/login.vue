@@ -22,8 +22,12 @@ async function requestOtp() {
 async function verify() {
   error.value = ''
   try {
-    await $fetch('/api/auth/otp/verify', { method: 'POST', body: { phone: phone.value, code: code.value } })
-    await navigateTo('/account')
+    const res = await $fetch<{ user?: { role?: string } }>('/api/auth/otp/verify', {
+      method: 'POST',
+      body: { phone: phone.value, code: code.value },
+    })
+    const isStaff = ['admin', 'receptionist', 'staff'].includes(String(res.user?.role))
+    await navigateTo(isStaff ? '/dashboard' : '/account')
   } catch (e: unknown) {
     error.value = (e as { data?: { statusMessage?: string } })?.data?.statusMessage || 'کد نامعتبر'
   }

@@ -1,5 +1,8 @@
 import { getDb } from '../db'
 
+export const STAFF_ROLES = ['admin', 'receptionist', 'staff']
+export const OPS_ROLES = ['admin', 'receptionist']
+
 export function getSessionUser(event: Parameters<typeof getCookie>[0]) {
   const token = getCookie(event, 'lumina_session')
   if (!token) return null
@@ -16,8 +19,8 @@ export function getSessionUser(event: Parameters<typeof getCookie>[0]) {
 export function requireUser(event: Parameters<typeof getCookie>[0], roles?: string[]) {
   const user = getSessionUser(event)
   if (!user) {
-    // در توسعه برای داشبورد/گزارش بدون لاگین
-    if (import.meta.dev) {
+    // دور زدن لاگین فقط در dev و فقط با فعال‌سازی صریح؛ در production هرگز
+    if (import.meta.dev && process.env.LUMINA_DEV_AUTH_BYPASS === '1') {
       return { id: 'dev-admin', phone: '09120000000', name: 'Dev Admin', role: 'admin' }
     }
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
@@ -26,4 +29,19 @@ export function requireUser(event: Parameters<typeof getCookie>[0], roles?: stri
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
   return user
+}
+
+/** شناسه‌ی پرسنلی که به این حساب وصل‌اند (staff.user_id). بدون اتصال: لیست خالی = بدون دسترسی. */
+export function ownStaffIds(userId: unknown): string[] {
+  const rows = getDb().prepare('SELECT id FROM staff WHERE user_id = ?').all(String(userId)) as Array<{ id: string }>
+  return rows.map((r) => r.id)
+}
+
+/** مالکیت رزرو فقط از اتصال سمت سرور: bookings.customer_id → customers.user_id */
+export function userOwnsBooking(userId: unknown, booking: Record<string, unknown>) {
+  if (!booking.customer_id) return false
+  const row = getDb()
+    .prepare('SELECT 1 AS ok FROM customers WHERE id = ? AND user_id = ?')
+    .get(String(booking.customer_id), String(userId))
+  return Boolean(row)
 }

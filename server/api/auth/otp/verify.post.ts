@@ -1,4 +1,6 @@
 import { getDb, newId } from '../../../db'
+import { clientIp, rateLimit } from '../../../utils/rateLimit'
+import { otpMatches } from '../../../utils/otp'
 
 /**
  * POST /api/auth/otp/verify
@@ -9,15 +11,22 @@ export default defineEventHandler(async (event) => {
   const code = String(body?.code || '')
   const db = getDb()
 
+  rateLimit(event, `otp-verify-ip:${clientIp(event)}`, 30, 10 * 60_000)
+
   const otp = db.prepare('SELECT * FROM otp_codes WHERE phone = ?').get(phone) as
     | { code: string; expires_at: string; attempts: number }
     | undefined
   if (!otp) throw createError({ statusCode: 400, statusMessage: 'OTP not found' })
-  if (otp.attempts >= 5) throw createError({ statusCode: 429, statusMessage: 'Too many attempts' })
+  if (otp.attempts >= 5) {
+    // بعد از ۵ تلاش اشتباه کد باطل می‌شود و باید کد جدید گرفت
+    db.prepare('DELETE FROM otp_codes WHERE phone = ?').run(phone)
+    throw createError({ statusCode: 429, statusMessage: 'Too many attempts' })
+  }
   if (new Date(otp.expires_at).getTime() < Date.now()) {
+    db.prepare('DELETE FROM otp_codes WHERE phone = ?').run(phone)
     throw createError({ statusCode: 400, statusMessage: 'OTP expired' })
   }
-  if (otp.code !== code) {
+  if (!otpMatches(otp.code, phone, code)) {
     db.prepare('UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ?').run(phone)
     throw createError({ statusCode: 400, statusMessage: 'Invalid OTP' })
   }
@@ -57,6 +66,7 @@ export default defineEventHandler(async (event) => {
   setCookie(event, 'lumina_session', token, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: !import.meta.dev,
     path: '/',
     maxAge: 7 * 24 * 3600,
   })
