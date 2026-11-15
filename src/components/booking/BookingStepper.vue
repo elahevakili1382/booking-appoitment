@@ -18,7 +18,7 @@ const emit = defineEmits<{
 <template>
     <aside class="min-w-0 rounded-t-3xl bg-primary/10 p-4 lg:w-56 lg:shrink-0 lg:rounded-none lg:rounded-s-3xl lg:p-5">
         <div class="mb-5 flex items-center gap-3">
-            <NuxtImg :src="assets.logo" alt="" class="h-8 w-auto object-contain" />
+            <img :src="assets.logo" alt="" class="h-8 w-auto object-contain" />
 
             <p class="font-latin text-lg font-semibold text-primary">
                 Lumina Clinic

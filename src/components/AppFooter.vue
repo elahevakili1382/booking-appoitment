@@ -18,7 +18,7 @@ const certs = [
       <div class="mb-8 grid grid-cols-1 gap-8 sm:mb-space-xl sm:grid-cols-2 lg:grid-cols-4 lg:gap-gutter">
         <div class="flex min-w-0 flex-col gap-space-sm">
           <div class="mb-space-xs flex min-w-0 items-center gap-space-sm">
-            <NuxtImg :src="assets.logo" alt="" class="h-8 w-auto shrink-0 object-contain" format="webp"
+            <img :src="assets.logo" alt="" class="h-8 w-auto shrink-0 object-contain"
               loading="lazy" />
             <span class="font-latin truncate text-[20px] text-primary sm:text-[22px]">Lumina Clinic</span>
           </div>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Lumina Clinic">
+  <rect width="64" height="64" rx="18" fill="#d4a373"/>
+  <path d="M24 15v28a5 5 0 0 0 5 5h13" stroke="#fefae0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="43" cy="22" r="4.5" fill="#fefae0"/>
+</svg>
