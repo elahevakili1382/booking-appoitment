@@ -7,6 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import type { CalendarOptions, EventDropArg } from '@fullcalendar/core'
+import faLocale from '@fullcalendar/core/locales/fa'
 import { useLanguage } from '../i18n/useLanguage'
 
 const props = defineProps<{
@@ -29,7 +30,7 @@ const emit = defineEmits<{
   create: [payload: { staffId: string; startsAt: string }]
 }>()
 
-const { locale } = useLanguage()
+const { locale, t } = useLanguage()
 const calRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 const failed = shallowRef(false)
 const failMsg = shallowRef('')
@@ -51,6 +52,9 @@ const options = computed<CalendarOptions>(() => ({
   schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
   initialView: fcView.value,
   initialDate: props.viewDate,
+  locales: [faLocale],
+  locale: locale.value === 'fa' ? 'fa' : 'en',
+  slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
   direction: locale.value === 'fa' ? 'rtl' : 'ltr',
   headerToolbar: false,
   height: 'auto',
@@ -141,7 +145,7 @@ watch(
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-2xl border border-outline-variant/20 bg-white p-2 shadow-sm">
+  <div class="relative overflow-hidden rounded-2xl border border-outline-variant/20 bg-white p-2 shadow-sm">
     <div v-if="failed" class="rounded-xl bg-[#faedcd] p-4 text-[13px] text-primary">
       تقویم پیشرفته لود نشد — نمای ساده پایین صفحه فعال است.
       <span class="mt-1 block font-latin text-[11px] opacity-70">{{ failMsg }}</span>
@@ -152,5 +156,9 @@ watch(
         <p class="p-6 text-center text-[13px] text-on-surface-variant">در حال بارگذاری تقویم…</p>
       </template>
     </ClientOnly>
+    <p v-if="!failed && !events.length"
+      class="pointer-events-none absolute inset-x-0 top-16 z-10 mx-auto w-fit rounded-full bg-surface-container-low px-4 py-2 text-[12px] text-on-surface-variant shadow-sm">
+      {{ t.dashCalEmpty }}
+    </p>
   </div>
 </template>

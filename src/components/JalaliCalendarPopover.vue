@@ -91,7 +91,7 @@ function dayDigits(n: number) {
 
 
 <template>
-    <div ref="root" class="w-72 rounded-2xl border border-outline-variant/30 bg-white p-3 shadow-xl">
+    <div ref="root" class="w-72 rounded-2xl glass-strong p-3">
         <div class="flex items-center justify-between px-1 pb-2">
             <button type="button"
                 class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"

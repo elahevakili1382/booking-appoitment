@@ -4,8 +4,11 @@ import { useLanguage } from '../i18n/useLanguage'
 import { assets } from '../data/assets'
 import AvailabilityModal from './AvailabilityModal.vue'
 import { useToast } from '../composables/useToast.ts'
+import { onClickOutside } from '@vueuse/core'
+import { averageTicket, breakdownBy, recentBookings, revenuePoints } from '~/composables/useRevenueReport.ts'
+import { periodDelta } from '~/composables/useBookingStats'
 
-type NavId = 'calendar' | 'contacts' | 'services' | 'links' | 'reports' | 'automations' | 'settings'
+type NavId = 'overview' | 'calendar' | 'contacts' | 'services' | 'links' | 'reports' | 'automations' | 'settings'
 type CalView = 'today' | 'staff' | 'day' | 'week' | 'month'
 type LinkTab = 'events' | 'single' | 'polls' | 'routing'
 type ApptStatus = 'completed' | 'paid' | 'progress' | 'confirmed' | 'next' | 'buffer'
@@ -91,7 +94,16 @@ const { data: dashRes, refresh: refreshDash } = useAsyncData(
       data: {
         viewDate: string
         today: string
-        stats: { revenueToday: number; appointmentsToday: number; activeRooms: number; weekAppointments: number }
+        staffLink?: { linked: boolean }
+        stats: {
+          revenueToday: number
+          appointmentsToday: number
+          activeRooms: number
+          weekAppointments: number
+          revenueMonth: number
+          newCustomers: number
+          cancelRate: number
+        }
         bookings: Array<{
           id: string
           code: string
@@ -103,6 +115,8 @@ const { data: dashRes, refresh: refreshDash } = useAsyncData(
           time?: string
           status: string
           total: number
+          phone?: string
+          createdAt?: string
         }>
         dayBookings?: Array<{
           id: string
@@ -116,21 +130,46 @@ const { data: dashRes, refresh: refreshDash } = useAsyncData(
           status: string
           total: number
         }>
-        services: Array<{ id: string; titleFa: string; titleEn: string; duration: number; price: number; color: string; location: string }>
+        services: Array<{ id: string; titleFa: string; titleEn: string; category?: string; duration: number; price: number; color: string; location: string; active?: boolean }>
         doctors: Array<{ id: string; nameFa: string; nameEn: string; roleFa: string; roleEn: string; active: boolean }>
-        customers: Array<{ id: string; name: string; phone: string; fileNo: string; lastVisit: string; tag?: string }>
+        customers: Array<{ id: string; name: string; phone: string; fileNo: string; lastVisit: string; tag?: string; notes?: string; allergy?: string }>
         calendarSlots: ApiCalendarSlot[]
+        kpiSeries?: Array<{ d: string; revenue: number; count: number }>
       }
     }>(`/api/dashboard?date=${viewDate.value}`),
   { watch: [viewDate] },
 )
+// برای دکمه‌های پیامک و بکاپ در بخش درآمد: show همان toast(message, type) است
+const { show: toast } = useToast()
+
 const showAlert = (message: string) => {
   if (typeof window !== 'undefined') {
     window.alert(message)
   }
 }
 const sidebarOpen = ref(false)
-const activeNav = ref<NavId>('calendar')
+const sidebarCollapsed = ref(false)
+const revenuePeriod = ref<7 | 14 | 30>(14)
+const revenueBookings = computed(() => dashRes.value?.data.bookings ?? [])
+const revenueKpis = computed(() => ({
+  today: dashRes.value?.data.stats.revenueToday,
+  month: dashRes.value?.data.stats.revenueMonth,
+  avgTicket: averageTicket(revenueBookings.value, viewDate.value, revenuePeriod.value),
+  weekDelta: periodDelta(revenueBookings.value, viewDate.value),
+}))
+const revenueDays = computed(() => revenuePoints(revenueBookings.value, viewDate.value, revenuePeriod.value))
+const revenueByService = computed(() => breakdownBy(revenueBookings.value, viewDate.value, revenuePeriod.value, 'service'))
+const revenueByDoctor = computed(() => breakdownBy(revenueBookings.value, viewDate.value, revenuePeriod.value, 'doctor'))
+
+const revenueRecent = computed(() => recentBookings(
+  dashRes.value?.data.bookings ?? []
+))
+const activeRoomsLabel = computed(() => {
+  const n = dashRes.value?.data.stats.activeRooms
+  return n === undefined ? '—' : n.toLocaleString(locale.value === 'fa' ? 'fa-IR' : 'en-US')
+})
+const overviewSlots = computed(() => (dashRes.value?.data.calendarSlots ?? []).filter((s) => !s.date || s.date === viewDate.value))
+const activeNav = ref<NavId>('overview')
 const calView = ref<CalView>('staff')
 const linkTab = ref<LinkTab>('events')
 const search = ref('')
@@ -152,6 +191,7 @@ const createForm = ref({
 const createBusy = ref(false)
 const createError = ref('')
 const selectedBookingId = ref<string | null>(null)
+const showDatePicker = ref(false)
 
 const hours = [9, 10, 11, 12, 13, 14, 15, 16]
 const HOUR_ROW_REM = 4.5
@@ -237,6 +277,10 @@ function parseBookingTime(when: string): { startHour: number; startMin: number }
   return { startHour: Number(m[1]), startMin: Number(m[2]) }
 }
 
+function onPickDate(iso: string) {
+  viewDate.value = iso
+  showDatePicker.value = false
+}
 const staff = ref<Staff[]>([
   {
     id: 'rostami',
@@ -354,6 +398,10 @@ const filteredBlocks = computed(() => {
   })
 })
 
+const moreOpen = ref(false)
+const moreRoot = ref<HTMLElement | null>(null)
+onClickOutside(moreRoot, () => (moreOpen.value = false))
+
 function blocksForStaff(staffId: string) {
   return filteredBlocks.value.filter((b) => b.staffId === staffId)
 }
@@ -402,54 +450,6 @@ const eventTypes = computed(() =>
       { id: 'filler', title: 'Natural filler & lip contour', duration: 60, location: 'clinic' as const, kind: 'one' as const, color: '#7a5c8a' },
       { id: 'consult', title: 'Dermatology consult', duration: 30, location: 'online' as const, kind: 'one' as const, color: '#4f7d6a', shared: true },
       { id: 'bridal', title: 'Bridal VIP Glow package', duration: 90, location: 'clinic' as const, kind: 'group' as const, color: '#b76e79' },
-    ],
-)
-
-const customers = computed(() =>
-  locale.value === 'fa'
-    ? [
-      { name: 'سحر داوودی', file: 'LM-7703', phone: '0912***4412', last: 'امروز', tag: 'VIP' },
-      { name: 'مینا کریمی', file: 'LM-7691', phone: '0935***2281', last: 'دیروز', tag: '' },
-      { name: 'نیلوفر احمدی', file: 'LM-7680', phone: '0910***1190', last: '۳ روز پیش', tag: '' },
-      { name: 'مریم حسینی', file: 'LM-7655', phone: '0912***8801', last: 'هفته پیش', tag: 'VIP' },
-    ]
-    : [
-      { name: 'Sahar Davoudi', file: 'LM-7703', phone: '0912***4412', last: 'Today', tag: 'VIP' },
-      { name: 'Mina Karimi', file: 'LM-7691', phone: '0935***2281', last: 'Yesterday', tag: '' },
-      { name: 'Niloufar Ahmadi', file: 'LM-7680', phone: '0910***1190', last: '3 days ago', tag: '' },
-      { name: 'Maryam Hosseini', file: 'LM-7655', phone: '0912***8801', last: 'Last week', tag: 'VIP' },
-    ],
-)
-
-const servicesCatalog = computed(() =>
-  locale.value === 'fa'
-    ? [
-      { title: 'هایفوتراپی ۳ بعدی', duration: '۷۵ دقیقه', price: 'از ۱۸,۵۰۰,۰۰۰' },
-      { title: 'مزوژل پروفایلو', duration: '۴۵ دقیقه', price: 'از ۱۲,۰۰۰,۰۰۰' },
-      { title: 'کانتورینگ لب', duration: '۶۰ دقیقه', price: 'از ۲۲,۰۰۰,۰۰۰' },
-      { title: 'فیشیال VIP', duration: '۹۰ دقیقه', price: 'از ۸,۹۰۰,۰۰۰' },
-    ]
-    : [
-      { title: '3D HIFU', duration: '75 min', price: 'from 18.5M' },
-      { title: 'Profhilo', duration: '45 min', price: 'from 12M' },
-      { title: 'Lip contour', duration: '60 min', price: 'from 22M' },
-      { title: 'VIP facial', duration: '90 min', price: 'from 8.9M' },
-    ],
-)
-
-const reportRows = computed(() =>
-  locale.value === 'fa'
-    ? [
-      { label: 'هایفو و لیفت', amount: '۷۴,۰۰۰,۰۰۰' },
-      { label: 'تزریقات و فیلر', amount: '۵۸,۵۰۰,۰۰۰' },
-      { label: 'ویزیت و مشاوره', amount: '۱۲,۰۰۰,۰۰۰' },
-      { label: 'فیشیال و مراقبت', amount: '۹,۸۰۰,۰۰۰' },
-    ]
-    : [
-      { label: 'HIFU & lift', amount: '74,000,000' },
-      { label: 'Injectables', amount: '58,500,000' },
-      { label: 'Consults', amount: '12,000,000' },
-      { label: 'Facials', amount: '9,800,000' },
     ],
 )
 
@@ -604,6 +604,7 @@ const publicBookUrl = computed(() => {
 })
 
 const navItems = computed(() => [
+  { id: 'overview' as const, label: t.value.dashNavOverview, icon: 'dashboard' },
   { id: 'calendar' as const, label: t.value.dashNavCalendar, icon: 'calendar_month' },
   { id: 'contacts' as const, label: t.value.dashNavContacts, icon: 'folder_shared' },
   { id: 'services' as const, label: t.value.dashNavServices, icon: 'spa' },
@@ -612,6 +613,19 @@ const navItems = computed(() => [
   { id: 'automations' as const, label: t.value.dashNavAutomations, icon: 'bolt' },
   { id: 'settings' as const, label: t.value.dashNavSettings, icon: 'settings' },
 ])
+
+/** نوار پایین موبایل: بخش‌های پرکاربرد؛ بقیه در کشوی سایدبار */
+const dockItems = computed(() => [
+  { id: 'overview' as const, label: t.value.dashMobHome, icon: 'home' },
+  { id: 'calendar' as const, label: t.value.dashMobAppts, icon: 'calendar_month' },
+  { id: 'links' as const, label: t.value.dashMobBooking, icon: 'event_available' },
+])
+
+/** موبایل: کشوی سایدبار؛ دسکتاپ: جمع/باز کردن سایدبار */
+function toggleSidebar() {
+  if (window.matchMedia('(min-width: 1024px)').matches) sidebarCollapsed.value = !sidebarCollapsed.value
+  else sidebarOpen.value = true
+}
 
 function selectNav(id: NavId) {
   activeNav.value = id
@@ -674,15 +688,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh w-full bg-[#fefae0] text-on-surface">
+  <div class="flex min-h-dvh w-full dash-wash text-on-surface">
     <button v-if="sidebarOpen" type="button" class="fixed inset-0 z-40 bg-on-surface/35 backdrop-blur-[2px] lg:hidden"
       :aria-label="t.dashMenu" @click="sidebarOpen = false" />
 
     <!-- Sidebar -->
     <aside
-      class="fixed inset-y-0 z-50 flex w-68 flex-col border-e border-outline-variant/20 bg-[#f3eaea] transition-transform duration-300 lg:static lg:z-auto lg:translate-x-0"
+      class="fixed inset-y-0 z-50 flex w-68 flex-col glass-sidebar transition-transform duration-300 motion-reduce:transition-none lg:static lg:z-auto lg:translate-x-0"
       :class="[
-        locale === 'fa' ? 'inset-e-0 inset-s-auto' : 'inset-s-0',
+        'inset-s-0',
+        sidebarCollapsed ? 'lg:hidden' : '',
         sidebarOpen
           ? 'translate-x-0'
           : locale === 'fa'
@@ -691,7 +706,7 @@ onUnmounted(() => {
       ]">
       <div class="border-b border-outline-variant/20 px-4 py-4">
         <div class="flex items-center gap-2.5">
-          <NuxtImg :src="assets.logo" alt="" class="h-8 w-auto object-contain" format="webp" loading="lazy" />
+          <img :src="assets.logo" alt="" class="h-8 w-auto object-contain" loading="lazy" />
           <div class="min-w-0">
             <p class="font-latin truncate text-[15px] font-semibold text-primary">{{ t.dashClinicName }}</p>
             <p class="truncate text-[10px] text-on-surface-variant">{{ t.dashClinicSub }}</p>
@@ -711,12 +726,13 @@ onUnmounted(() => {
             ? 'bg-primary text-on-primary shadow-sm'
             : 'text-on-surface-variant hover:bg-white/55 hover:text-on-surface'
             " @click="selectNav(item.id)">
-          <Icon name="ph:{{ item.icon }}" />
-          <span class="min-w-0 leading-snug">{{ item.label }}</span>
+          <span class="material-symbols-outlined text-[20px]">{{ item.icon }}</span> <span
+            class="min-w-0 leading-snug">{{ item.label }}</span>
         </button>
       </nav>
 
-      <div class="mx-3 mt-1 rounded-2xl border border-outline-variant/20 bg-white/50 p-3">
+      <div v-if="dashRes?.data.staffLink?.linked !== false"
+        class="mx-3 mt-1 rounded-2xl border border-outline-variant/20 bg-white/50 p-3">
         <p class="mb-2 text-[11px] font-bold text-on-surface">{{ t.dashActiveCalendars }}</p>
         <label v-for="s in staffList" :key="s.id"
           class="mb-1.5 flex cursor-pointer items-center gap-2 text-[12px] last:mb-0">
@@ -756,59 +772,46 @@ onUnmounted(() => {
       </div>
     </aside>
 
+    <!-- نوار ناوبری پایین (فقط موبایل و تبلت) -->
+    <nav class="glass-dock fixed inset-x-0 bottom-0 z-30 lg:hidden" :aria-label="t.dashMobNav">
+      <ul class="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <li v-for="item in dockItems" :key="item.id">
+          <button type="button" :aria-current="activeNav === item.id ? 'page' : undefined"
+            class="flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[10.5px] font-semibold transition-colors"
+            :class="activeNav === item.id ? 'bg-primary/15 text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-low'"
+            @click="selectNav(item.id)">
+            <span class="material-symbols-outlined block h-6 w-6 overflow-hidden text-[24px]"
+              :class="activeNav === item.id ? 'icon-fill' : ''" aria-hidden="true">{{ item.icon }}</span>
+            <span class="max-w-full truncate">{{ item.label }}</span>
+          </button>
+        </li>
+        <li>
+          <NuxtLink to="/account"
+            class="flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[10.5px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low">
+            <span class="material-symbols-outlined block h-6 w-6 overflow-hidden text-[24px]"
+              aria-hidden="true">account_circle</span>
+            <span class="max-w-full truncate">{{ t.dashMobAccount }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </nav>
+
     <!-- Main -->
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="sticky top-0 z-30 border-b border-outline-variant/20 bg-[#fefae0]/95 backdrop-blur-xl">
+      <header class="sticky top-0 z-30 glass-bar">
         <div class="flex flex-wrap items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 lg:px-6">
           <button type="button"
-            class="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm lg:hidden"
-            :aria-label="t.dashMenu" @click="sidebarOpen = true">
+            class="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm"
+            :aria-label="t.dashMenu" @click="toggleSidebar">
             <Icon name="ph:list" />
           </button>
 
           <div class="relative min-w-0 flex-1 basis-full sm:basis-auto sm:max-w-md">
             <span
               class="material-symbols-outlined pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">search</span>
-            <input v-model="search" type="search"
+            <input v-model="search" type="search" :aria-label="t.dashSearchPlaceholder"
               class="h-11 w-full rounded-full border border-outline-variant/25 bg-white pe-3 ps-10 text-[13px] outline-none focus:ring-2 focus:ring-primary/15"
               :placeholder="t.dashSearchPlaceholder" />
-          </div>
-
-          <div class="flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-sm">
-            <button type="button"
-              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"
-              @click="shiftViewDate(-1)">
-              <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_right' : 'chevron_left'
-              }}</span>
-            </button>
-            <button type="button" class="px-2 text-[12px] font-bold sm:text-[13px]" @click="goToday">
-              {{ dateLabel }}
-            </button>
-            <button type="button"
-              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"
-              @click="shiftViewDate(1)">
-              <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_left' : 'chevron_right'
-              }}</span>
-            </button>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-1">
-            <button v-for="v in (['today', 'staff', 'day', 'week', 'month'] as CalView[])" :key="v" type="button"
-              class="min-h-9 cursor-pointer rounded-full px-2.5 text-[11px] font-bold sm:px-3 sm:text-[12px]"
-              :class="calView === v ? 'bg-primary text-on-primary' : 'bg-white text-on-surface-variant hover:bg-surface-container-low'"
-              @click="v === 'today' ? goToday() : ((calView = v), (activeNav = 'calendar'))">
-              {{
-                v === 'today'
-                  ? t.dashViewToday
-                  : v === 'staff'
-                    ? t.dashViewStaff
-                    : v === 'day'
-                      ? t.dashViewDay
-                      : v === 'week'
-                        ? t.dashViewWeek
-                        : t.dashViewMonth
-              }}
-            </button>
           </div>
 
           <div class="ms-auto flex flex-wrap items-center gap-2">
@@ -826,17 +829,30 @@ onUnmounted(() => {
                 EN
               </button>
             </div>
-            <button type="button"
-              class="hidden min-h-10 cursor-pointer items-center gap-1 rounded-full border border-outline-variant/30 bg-white px-3 text-[12px] font-semibold md:inline-flex"
-              @click="availOpen = true">
-              <Icon name="ph:clock" />
-              {{ t.dashManageAvailability }}
-            </button>
-            <button type="button"
-              class="hidden min-h-10 cursor-pointer items-center gap-1 rounded-full border border-outline-variant/30 bg-white px-3 text-[12px] font-semibold lg:inline-flex">
-              <Icon name="ph:share-network" />
-              {{ t.dashShareCalendar }}
-            </button>
+            <!--  -->
+            <div ref="moreRoot" class="relative">
+              <button type="button" aria-label="بیشتر" :aria-expanded="moreOpen" @click="moreOpen = !moreOpen"
+                class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-outline-variant/30 bg-white">
+                <span class="material-symbols-outlined">more_horiz</span>
+              </button>
+              <div v-if="moreOpen" class="absolute inset-e-0 top-full z-50 mt-2 w-56 rounded-2xl glass-strong p-1.5">
+                <button type="button"
+                  class="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl px-3 text-start text-[12px] font-semibold hover:bg-surface-container-low"
+                  @click="availOpen = true; moreOpen = false">
+
+                  <Icon name="ph:clock" />
+                  {{ t.dashManageAvailability }}
+                </button>
+                <button type="button"
+                  class="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl px-3 text-start text-[12px] font-semibold hover:bg-surface-container-low"
+                  @click="copyText(publicBookUrl); toast(t.dashCopied); moreOpen = false">
+
+                  <Icon name="ph:share-network" />
+                  {{ t.dashShareCalendar }}
+                </button>
+              </div>
+            </div>
+
             <button type="button"
               class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full bg-primary px-3 text-[12px] font-bold text-on-primary shadow-sm sm:px-4"
               @click="openCreate()">
@@ -846,46 +862,90 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Stats strip -->
+        <!-- Branch + clock strip (KPIs live in DashboardKpiCards) -->
         <div
           class="flex gap-3 overflow-x-auto border-t border-outline-variant/15 px-3 py-2.5 text-[11px] sm:px-5 lg:px-6 scrollbar-none">
           <span class="shrink-0 font-semibold text-primary">{{ t.dashBranchLabel }}</span>
-          <span class="shrink-0 text-outline-variant">|</span>
-          <span class="shrink-0 text-on-surface-variant">
-            {{ t.dashStatsRevenue }}:
-            <strong class="text-on-surface">{{
-              (dashRes?.data.stats.revenueToday ?? 42500000).toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US')
-            }} {{ locale === 'fa' ? 'ت' : 'T' }}</strong>
-          </span>
-          <span class="shrink-0 text-outline-variant">|</span>
-          <span class="shrink-0 text-on-surface-variant">
-            {{ t.dashStatsRooms }}:
-            <strong class="text-on-surface">{{ dashRes?.data.stats.activeRooms ?? 4 }}</strong>
-          </span>
-          <span class="shrink-0 text-outline-variant">|</span>
-          <span class="shrink-0 text-on-surface-variant">
-            {{ t.dashStatsToday }}:
-            <strong class="text-on-surface">{{ dashRes?.data.stats.appointmentsToday ?? 18 }}</strong>
-          </span>
+          <span class="shrink-0 text-on-surface-variant">{{ t.dashStatsRooms }}: <strong class="text-on-surface">{{ activeRoomsLabel }}</strong></span>
           <span class="ms-auto shrink-0 font-latin text-on-surface-variant">{{ t.dashTimezone }} · {{ clockLabel
           }}</span>
         </div>
       </header>
 
-      <div class="relative flex-1 p-3 sm:p-5 lg:p-6">
+      <div class="relative flex-1 p-3 pb-24 sm:p-5 sm:pb-24 lg:p-6">
+        <!-- حساب پرسنل بدون اتصال به پزشک -->
+        <section v-if="dashRes?.data.staffLink?.linked === false" class="mx-auto max-w-xl space-y-3 py-10 text-center"
+          role="status">
+          <h2 class="text-lg font-bold text-on-surface">
+            {{ locale === 'fa' ? 'حساب شما به پزشک متصل نیست' : 'Your account is not linked to a doctor' }}
+          </h2>
+          <p class="text-sm text-on-surface-variant">
+            {{ locale === 'fa'
+              ? 'برای دیدن نوبت‌ها، مدیر کلینیک باید حساب شما را به پروفایل پزشک وصل کند.'
+              : 'To see appointments, a clinic admin must link your account to your doctor profile.' }}
+          </p>
+        </section>
+
+        <!-- OVERVIEW -->
+        <section v-else-if="activeNav === 'overview'" class="min-w-0">
+          <DashboardOverview :stats="dashRes?.data.stats" :bookings="dashRes?.data.bookings ?? []"
+            :day-bookings="dashRes?.data.dayBookings ?? []" :doctors="activeStaff" :slots="overviewSlots"
+            :view-date="viewDate" :date-label="dateLabel" :loading="!dashRes" @select-date="onPickDate" />
+        </section>
+
         <!-- CALENDAR -->
-        <section v-if="activeNav === 'calendar'" class="min-w-0 space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 class="text-[18px] font-bold">{{ t.dashNavCalendar }}</h2>
-              <p class="text-[12px] text-on-surface-variant">{{ dateLabel }}</p>
+        <section v-else-if="activeNav === 'calendar'" class="min-w-0 space-y-4">
+          <div>
+            <h2 class="text-[18px] font-bold">{{ t.dashNavCalendar }}</h2>
+            <p class="text-[12px] text-on-surface-variant">{{ dateLabel }}</p>
+          </div>
+
+          <!-- Calendar toolbar: date navigation + view switcher -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="relative flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-sm">
+              <button type="button" :aria-label="locale === 'fa' ? 'قبلی' : 'Previous'"
+                class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"
+                @click="shiftViewDate(-1)">
+                <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_right' :
+                  'chevron_left' }}</span>
+              </button>
+              <button type="button" class="px-2 text-[12px] font-bold sm:text-[13px]"
+                @click="showDatePicker = !showDatePicker">
+                {{ dateLabel }}
+              </button>
+              <JalaliCalendarPopover v-if="showDatePicker" class="absolute top-full z-50 mt-2" :model-iso="viewDate"
+                min-iso="2020-01-01" @select="onPickDate" @close="showDatePicker = false" />
+              <button type="button" :aria-label="locale === 'fa' ? 'بعدی' : 'Next'"
+                class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full hover:bg-surface-container-low"
+                @click="shiftViewDate(1)">
+                <span class="material-symbols-outlined text-[18px]">{{ locale === 'fa' ? 'chevron_left' :
+                  'chevron_right' }}</span>
+              </button>
             </div>
+
             <button type="button"
-              class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full bg-primary px-4 text-[12px] font-bold text-on-primary"
-              @click="openCreate()">
-              <Icon name="ph:plus" />
-              {{ t.dashNewAppt }}
+              class="min-h-9 cursor-pointer rounded-full bg-white px-3 text-[12px] font-bold text-on-surface-variant shadow-sm hover:bg-surface-container-low"
+              @click="goToday">
+              {{ t.dashViewToday }}
             </button>
+
+            <div class="flex items-center rounded-full bg-white p-0.5 shadow-sm" role="group"
+              :aria-label="t.dashNavCalendar">
+              <button v-for="v in (['staff', 'day', 'week', 'month'] as CalView[])" :key="v" type="button"
+                class="min-h-9 cursor-pointer rounded-full px-2.5 text-[11px] font-bold sm:px-3 sm:text-[12px]"
+                :class="calView === v ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-low'"
+                :aria-pressed="calView === v" @click="calView = v">
+                {{
+                  v === 'staff'
+                    ? t.dashViewStaff
+                    : v === 'day'
+                      ? t.dashViewDay
+                      : v === 'week'
+                        ? t.dashViewWeek
+                        : t.dashViewMonth
+                }}
+              </button>
+            </div>
           </div>
 
           <StaffCalendar :view-date="viewDate" :cal-view="calView"
@@ -894,24 +954,24 @@ onUnmounted(() => {
 
           <div v-if="selectedBookingId"
             class="flex flex-wrap items-center gap-2 rounded-2xl border border-outline-variant/20 bg-white p-3 text-[12px]">
-            <span class="font-bold">نوبت انتخاب‌شده:</span>
+            <span class="font-bold">{{ t.dashSelBooking }}</span>
             <code class="font-latin text-primary">{{ selectedBookingId }}</code>
             <button type="button" class="rounded-full bg-primary/10 px-3 py-1.5 font-bold"
-              @click="setBookingStatus(selectedBookingId, 'completed')">انجام‌شده</button>
+              @click="setBookingStatus(selectedBookingId, 'completed')">{{ t.dashActDone }}</button>
             <button type="button" class="rounded-full bg-primary/10 px-3 py-1.5 font-bold"
-              @click="setBookingStatus(selectedBookingId, 'confirmed')">تأیید</button>
+              @click="setBookingStatus(selectedBookingId, 'confirmed')">{{ t.dashActConfirm }}</button>
             <button type="button" class="rounded-full border px-3 py-1.5 font-bold"
-              @click="setBookingStatus(selectedBookingId, 'no_show')">غیبت</button>
+              @click="setBookingStatus(selectedBookingId, 'no_show')">{{ t.dashActNoShow }}</button>
             <button type="button" class="rounded-full border px-3 py-1.5 font-bold text-primary"
-              @click="setBookingStatus(selectedBookingId, 'cancelled')">لغو</button>
+              @click="setBookingStatus(selectedBookingId, 'cancelled')">{{ t.dashActCancel }}</button>
             <button type="button" class="ms-auto text-on-surface-variant"
-              @click="selectedBookingId = null">بستن</button>
+              @click="selectedBookingId = null">{{ t.dashActClose }}</button>
           </div>
 
           <div class="overflow-x-auto rounded-2xl border border-outline-variant/20 bg-white shadow-sm">
             <div class="min-w-180">
               <!-- header row -->
-              <div class="grid sticky top-0 z-10 border-b border-outline-variant/15 bg-[#fefae0]"
+              <div class="grid sticky top-0 z-10 border-b border-outline-variant/15 bg-surface"
                 :style="{ gridTemplateColumns: `3.5rem repeat(${Math.max(activeStaff.length, 1)}, minmax(12rem, 1fr))` }">
                 <div />
                 <div v-for="s in activeStaff" :key="s.id"
@@ -999,43 +1059,14 @@ onUnmounted(() => {
         </section>
 
         <!-- CONTACTS -->
-        <section v-else-if="activeNav === 'contacts'" class="space-y-3">
-          <h2 class="text-[20px] font-bold">{{ t.dashCustomersTitle }}</h2>
-          <div class="overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-sm">
-            <div
-              class="hidden grid-cols-5 gap-2 border-b border-outline-variant/15 bg-[#fefae0] px-4 py-2.5 text-[11px] font-bold text-on-surface-variant md:grid">
-              <span>{{ t.dashApptPatient }}</span>
-              <span>{{ t.dashFileNo }}</span>
-              <span>{{ t.dashPhone }}</span>
-              <span>{{ t.dashLastVisit }}</span>
-              <span>{{ t.dashApptStatus }}</span>
-            </div>
-            <div v-for="c in customers" :key="c.file"
-              class="grid gap-1 border-b border-outline-variant/10 px-4 py-3 text-[13px] last:border-0 md:grid-cols-5 md:items-center md:gap-2">
-              <span class="font-bold">{{ c.name }}</span>
-              <span class="font-latin text-[12px] text-primary">{{ c.file }}</span>
-              <span dir="ltr" class="text-on-surface-variant">{{ c.phone }}</span>
-              <span class="text-on-surface-variant">{{ c.last }}</span>
-              <span v-if="c.tag"
-                class="w-fit rounded-full bg-secondary-fixed px-2 py-0.5 text-[10px] font-bold text-on-secondary-fixed">{{
-                  c.tag
-                }}</span>
-              <span v-else class="text-[11px] text-on-surface-variant">—</span>
-            </div>
-          </div>
+        <section v-else-if="activeNav === 'contacts'" class="min-w-0">
+          <PatientsPanel :customers="dashRes?.data.customers ?? []" :bookings="dashRes?.data.bookings ?? []"
+            :loading="!dashRes" />
         </section>
 
         <!-- SERVICES -->
-        <section v-else-if="activeNav === 'services'" class="space-y-3">
-          <h2 class="text-[20px] font-bold">{{ t.dashServicesTitle }}</h2>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <article v-for="svc in servicesCatalog" :key="svc.title"
-              class="rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-sm">
-              <h3 class="text-[15px] font-bold">{{ svc.title }}</h3>
-              <p class="mt-2 text-[12px] text-on-surface-variant">{{ svc.duration }}</p>
-              <p class="mt-3 text-[14px] font-bold text-primary">{{ svc.price }} {{ t.toman }}</p>
-            </article>
-          </div>
+        <section v-else-if="activeNav === 'services'" class="min-w-0">
+          <ServicesPanel :services="dashRes?.data.services ?? []" :loading="!dashRes" />
         </section>
 
         <!-- BOOKING LINKS (Calendly event types) -->
@@ -1108,49 +1139,14 @@ onUnmounted(() => {
 
         <!-- REPORTS -->
         <section v-else-if="activeNav === 'reports'" class="space-y-4">
-          <div class="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 class="text-[20px] font-bold">{{ t.dashReportsTitle }}</h2>
-              <p class="mt-1 text-[13px] text-on-surface-variant">{{ t.dashReportsSubtitle }}</p>
-            </div>
-            <a href="/api/reports/revenue?format=csv"
-              class="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-[12px] font-bold text-on-primary">
-              خروجی Excel/CSV
-            </a>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-sm">
-              <p class="text-[11px] text-on-surface-variant">{{ t.dashStatsRevenue }}</p>
-              <p class="mt-1 text-[22px] font-bold">
-                {{ (dashRes?.data.stats.revenueToday ?? 0).toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US') }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-sm">
-              <p class="text-[11px] text-on-surface-variant">{{ t.dashStatsToday }}</p>
-              <p class="mt-1 text-[22px] font-bold">{{ dashRes?.data.stats.appointmentsToday ?? 0 }}</p>
-            </div>
-            <div class="rounded-2xl border border-outline-variant/20 bg-white p-4 shadow-sm">
-              <p class="text-[11px] text-on-surface-variant">ماه</p>
-              <p class="mt-1 text-[22px] font-bold">
-                {{ Number((dashRes?.data.stats as { revenueMonth?: number })?.revenueMonth || 0).toLocaleString(locale
-                  === 'fa'
-                  ? 'fa-IR' : 'en-US') }}
-              </p>
-            </div>
-          </div>
-          <div class="overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-sm">
-            <div v-for="row in reportRows" :key="row.label"
-              class="flex items-center justify-between border-b border-outline-variant/10 px-4 py-3 text-[13px] last:border-0">
-              <span class="font-semibold">{{ row.label }}</span>
-              <span class="font-bold text-primary">{{ row.amount }} {{ t.toman }}</span>
-            </div>
-          </div>
+          <RevenuePanel v-model:period="revenuePeriod" :kpis="revenueKpis" :points="revenueDays" :by-service="revenueByService" :by-doctor="revenueByDoctor"
+            :recent="revenueRecent" :loading="!dashRes" />
           <div class="flex flex-wrap gap-2">
             <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
               @click="$fetch('/api/admin/reminders', { method: 'POST' }).then((r: any) => toast('SMS: ' + r.sent)).catch(() => toast('خطا در ارسال', 'error'))">
               ارسال یادآوری پیامک
             </button>
-            <button type=" button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
+            <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
               @click="$fetch('/api/admin/backup', { method: 'POST' }).then((r: any) => toast(r.path)).catch(() => toast('خطا در بکاپ', 'error'))">
               بکاپ SQLite
             </button>
