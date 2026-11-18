@@ -14,6 +14,8 @@ const props = defineProps<{
   viewDate: string
   calView: 'today' | 'staff' | 'day' | 'week' | 'month'
   staff: Array<{ id: string; name: string }>
+  /** حالت فقط‌خواندنی (ورود نمایشی): بدون کشیدن و ساخت نوبت */
+  readonly?: boolean
   events: Array<{
     id: string
     staffId: string
@@ -90,8 +92,8 @@ const options = computed<CalendarOptions>(() => ({
   slotMaxTime: '21:00:00',
   allDaySlot: false,
   nowIndicator: true,
-  editable: true,
-  selectable: true,
+  editable: !props.readonly,
+  selectable: !props.readonly,
   selectMirror: true,
   resources: props.staff.map((s) => ({ id: s.id, title: s.name })),
   events: props.events.map(toFcEvent),

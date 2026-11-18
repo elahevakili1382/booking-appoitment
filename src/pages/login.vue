@@ -33,6 +33,19 @@ async function verify() {
   }
 }
 
+// ورود نمایشی فقط‌خواندنی؛ فقط وقتی NUXT_PUBLIC_DEMO=true باشد دکمه‌اش دیده می‌شود
+const demoEnabled = useRuntimeConfig().public.demo === true
+
+async function demoLogin() {
+  error.value = ''
+  try {
+    await $fetch('/api/auth/demo', { method: 'POST' })
+    await navigateTo('/dashboard')
+  } catch (e: unknown) {
+    error.value = (e as { data?: { statusMessage?: string } })?.data?.statusMessage || 'خطا'
+  }
+}
+
 useSeoMeta({ title: 'ورود | Lumina Clinic' })
 </script>
 
@@ -52,5 +65,16 @@ useSeoMeta({ title: 'ورود | Lumina Clinic' })
       <button type="submit" class="h-12 w-full rounded-full bg-primary font-bold text-on-primary">ورود</button>
     </form>
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
+
+    <div v-if="demoEnabled" class="mt-8 rounded-2xl border border-outline-variant/40 bg-white p-4">
+      <p class="text-sm font-bold text-on-surface">فقط می‌خواهید داشبورد را ببینید؟</p>
+      <p class="mt-1 text-[13px] text-on-surface-variant">
+        بدون شماره و کد وارد شوید. نسخهٔ نمایشی است، با دادهٔ ساختگی و فقط برای مشاهده (چیزی را نمی‌توانید تغییر دهید).
+      </p>
+      <button type="button" class="mt-3 h-12 w-full cursor-pointer rounded-full border border-primary font-bold text-primary hover:bg-primary/10"
+        @click="demoLogin">
+        مشاهدهٔ نمایشی داشبورد
+      </button>
+    </div>
   </div>
 </template>

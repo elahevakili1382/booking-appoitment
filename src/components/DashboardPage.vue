@@ -142,6 +142,15 @@ const { data: dashRes, refresh: refreshDash } = useAsyncData(
 // برای دکمه‌های پیامک و بکاپ در بخش درآمد: show همان toast(message, type) است
 const { show: toast } = useToast()
 
+// ورود نمایشی: فقط‌خواندنی (سرور هم هر درخواست نوشتن را رد می‌کند)
+const { data: meRes } = useAsyncData('dash-me', () =>
+  $fetch<{ user: { name?: string } | null; demo?: boolean }>('/api/auth/me').catch(() => ({ user: null, demo: false })),
+)
+const isDemo = computed(() => meRes.value?.demo === true)
+function denyInDemo() {
+  toast(t.value.dashDemoReadOnly, 'error')
+}
+
 const showAlert = (message: string) => {
   if (typeof window !== 'undefined') {
     window.alert(message)
@@ -353,6 +362,7 @@ const eventTypes = computed(() =>
 const autoBusy = ref<'remind' | 'backup' | null>(null)
 
 async function sendReminders() {
+  if (isDemo.value) return denyInDemo()
   if (!window.confirm(t.value.dashAutoRemindConfirm)) return
   autoBusy.value = 'remind'
   try {
@@ -366,6 +376,7 @@ async function sendReminders() {
 }
 
 async function runBackup() {
+  if (isDemo.value) return denyInDemo()
   autoBusy.value = 'backup'
   try {
     await $fetch('/api/admin/backup', { method: 'POST' })
@@ -410,7 +421,13 @@ function goToday() {
   activeNav.value = 'calendar'
 }
 
+function openAvailability() {
+  if (isDemo.value) return denyInDemo()
+  availOpen.value = true
+}
+
 function openCreate(prefill?: { staffId?: string; startsAt?: string }) {
+  if (isDemo.value) return denyInDemo()
   createError.value = ''
   createForm.value = {
     name: '',
@@ -483,6 +500,7 @@ const selectedBooking = computed(() => {
 })
 
 async function patchBooking(id: string, body: { status?: string; paymentStatus?: 'paid' | 'unpaid' }, okMessage: string) {
+  if (isDemo.value) return denyInDemo()
   try {
     await $fetch(`/api/bookings/${rawBookingId(id)}`, { method: 'PATCH', body })
     await refreshDash()
@@ -672,7 +690,7 @@ onUnmounted(() => {
       <div class="mt-auto space-y-2 border-t border-outline-variant/20 p-3">
         <button type="button"
           class="flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-outline-variant/30 bg-white/70 px-3 text-start text-[12px] font-semibold text-on-surface hover:bg-white"
-          @click="availOpen = true">
+          @click="openAvailability()">
           <Icon name="ph:calendar-check" />
           {{ t.dashConnectCalendar }}
         </button>
@@ -766,7 +784,7 @@ onUnmounted(() => {
               <div v-if="moreOpen" class="absolute inset-e-0 top-full z-50 mt-2 w-56 rounded-2xl glass-strong p-1.5">
                 <button type="button"
                   class="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl px-3 text-start text-[12px] font-semibold hover:bg-surface-container-low"
-                  @click="availOpen = true; moreOpen = false">
+                  @click="openAvailability(); moreOpen = false">
 
                   <Icon name="ph:clock" />
                   {{ t.dashManageAvailability }}
@@ -781,7 +799,7 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <button type="button"
+            <button v-if="!isDemo" type="button"
               class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full bg-primary px-3 text-[12px] font-bold text-on-primary shadow-sm sm:px-4"
               @click="openCreate()">
               <Icon name="ph:plus" />
@@ -802,6 +820,11 @@ onUnmounted(() => {
 
       <div class="relative flex-1 p-3 pb-24 sm:p-5 sm:pb-24 lg:p-6">
         <!-- حساب پرسنل بدون اتصال به پزشک -->
+        <p v-if="isDemo" role="status"
+          class="mb-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-[13px] font-semibold text-on-surface">
+          {{ t.dashDemoBanner }}
+        </p>
+
         <section v-if="dashRes?.data.staffLink?.linked === false" class="mx-auto max-w-xl space-y-3 py-10 text-center"
           role="status">
           <h2 class="text-lg font-bold text-on-surface">
@@ -888,7 +911,7 @@ onUnmounted(() => {
           </div>
 
           <StaffCalendar :view-date="viewDate" :cal-view="calView"
-            :staff="activeStaff.map((s) => ({ id: s.id, name: s.name }))" :events="fcEvents" @moved="refreshDash()"
+            :staff="activeStaff.map((s) => ({ id: s.id, name: s.name }))" :events="fcEvents" :readonly="isDemo" @moved="refreshDash()"
             @select="selectedBookingId = $event" @create="openCreate($event)" />
 
           <div v-if="selectedBookingId"
@@ -900,6 +923,7 @@ onUnmounted(() => {
               :class="selectedBooking.paymentStatus === 'paid' ? 'bg-sage/60 text-on-surface' : 'bg-surface-container text-on-surface-variant'">
               {{ selectedBooking.paymentStatus === 'paid' ? t.dashPaySettled : t.dashPayUnsettled }}
             </span>
+            <template v-if="!isDemo">
             <button type="button" class="rounded-full bg-primary/10 px-3 py-1.5 font-bold"
               @click="setBookingStatus(selectedBookingId, 'completed')">{{ t.dashActDone }}</button>
             <button v-if="selectedBooking && selectedBooking.status !== 'cancelled' && selectedBooking.status !== 'no_show'"
@@ -913,6 +937,7 @@ onUnmounted(() => {
               @click="setBookingStatus(selectedBookingId, 'no_show')">{{ t.dashActNoShow }}</button>
             <button type="button" class="rounded-full border px-3 py-1.5 font-bold text-primary"
               @click="setBookingStatus(selectedBookingId, 'cancelled')">{{ t.dashActCancel }}</button>
+            </template>
             <button type="button" class="ms-auto text-on-surface-variant"
               @click="selectedBookingId = null">{{ t.dashActClose }}</button>
           </div>
@@ -993,7 +1018,7 @@ onUnmounted(() => {
                 <p class="text-[14px] font-bold">{{ t.dashAutoRemindTitle }}</p>
                 <p class="mt-0.5 text-[12px] text-on-surface-variant">{{ t.dashAutoRemindDesc }}</p>
               </div>
-              <button type="button" :disabled="autoBusy !== null"
+              <button type="button" :disabled="autoBusy !== null || isDemo"
                 class="min-h-10 cursor-pointer rounded-full bg-primary px-4 text-[12px] font-bold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
                 @click="sendReminders">
                 {{ t.dashAutoRun }}
@@ -1004,7 +1029,7 @@ onUnmounted(() => {
                 <p class="text-[14px] font-bold">{{ t.dashAutoBackupTitle }}</p>
                 <p class="mt-0.5 text-[12px] text-on-surface-variant">{{ t.dashAutoBackupDesc }}</p>
               </div>
-              <button type="button" :disabled="autoBusy !== null"
+              <button type="button" :disabled="autoBusy !== null || isDemo"
                 class="min-h-10 cursor-pointer rounded-full border border-outline-variant/30 px-4 text-[12px] font-bold hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
                 @click="runBackup">
                 {{ t.dashAutoRun }}
@@ -1021,7 +1046,7 @@ onUnmounted(() => {
           </div>
           <button type="button"
             class="flex min-h-12 w-full cursor-pointer items-center justify-between rounded-card border border-outline-variant/25 bg-white px-4 text-start shadow-card hover:bg-surface-container-low"
-            @click="availOpen = true">
+            @click="openAvailability()">
             <span class="flex items-center gap-3 text-[14px] font-bold">
               <Icon name="ph:calendar_month" />
               {{ t.dashManageAvailability }}

@@ -121,6 +121,8 @@ app: {
       appName: 'Lumina Clinic',
       // فقط توسعه؛ در production سرور بدون توجه به این مقدار mock را رد می‌کند
       otpMock: process.env.NODE_ENV !== 'production',
+      // ورود نمایشی فقط‌خواندنی؛ فقط با NUXT_PUBLIC_DEMO=true روشن می‌شود (پیش‌فرض خاموش)
+      demo: false,
     },
   },
 
