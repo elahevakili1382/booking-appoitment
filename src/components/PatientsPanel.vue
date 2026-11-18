@@ -123,7 +123,7 @@ const initial = (name: string) => name.trim().charAt(0) || '؟'
                         @click="selectedId = c.id">
                         <span class="row-span-2 grid h-10 w-10 place-items-center rounded-full bg-sage/45 text-[15px] font-bold text-on-surface md:row-span-1" aria-hidden="true">{{ initial(c.name) }}</span>
                         <span class="min-w-0">
-                            <span class="block truncate text-[13px] font-bold text-on-surface">{{ c.name }}</span>
+                            <span lang="fa" dir="auto" class="block truncate text-[13px] font-bold text-on-surface">{{ c.name }}</span>
                             <span class="block font-latin text-[11px] text-on-surface-variant">{{ c.fileNo }}</span>
                         </span>
                         <span dir="ltr" class="hidden truncate text-end text-[12px] tabular-nums text-on-surface-variant md:block md:text-start">{{ c.phone }}</span>
@@ -147,7 +147,7 @@ const initial = (name: string) => name.trim().charAt(0) || '؟'
                 <div class="flex items-center gap-3">
                     <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sage/45 text-[20px] font-bold text-on-surface" aria-hidden="true">{{ initial(selected.name) }}</span>
                     <div class="min-w-0">
-                        <h3 class="truncate text-[16px] font-bold text-on-surface">{{ selected.name }}</h3>
+                        <h3 lang="fa" dir="auto" class="truncate text-[16px] font-bold text-on-surface">{{ selected.name }}</h3>
                         <p class="font-latin text-[12px] text-on-surface-variant">{{ selected.fileNo }}</p>
                         <p dir="ltr" class="text-start text-[12px] tabular-nums text-on-surface-variant">{{ selected.phone }}</p>
                     </div>
@@ -183,7 +183,7 @@ const initial = (name: string) => name.trim().charAt(0) || '؟'
                     <ol v-else class="mt-2 space-y-2">
                         <li v-for="b in history.slice(0, 6)" :key="b.id" class="flex items-center justify-between gap-2 rounded-xl bg-surface-container-low px-3 py-2">
                             <div class="min-w-0">
-                                <p class="truncate text-[12px] font-semibold text-on-surface">{{ b.service || '—' }}</p>
+                                <p lang="fa" dir="auto" class="truncate text-[12px] font-semibold text-on-surface">{{ b.service || '—' }}</p>
                                 <p class="text-[11px] text-on-surface-variant">{{ showDate(b.date) }} · <span class="font-latin tabular-nums">{{ b.time }}</span></p>
                             </div>
                             <StatusPill :status="b.status" />

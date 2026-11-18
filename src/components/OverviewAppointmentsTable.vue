@@ -37,8 +37,8 @@ const rows = computed(() => [...props.bookings].sort((a, b) => (a.time ?? '').lo
                 <tbody class="divide-y divide-outline-variant/15">
                     <tr v-for="b in rows" :key="b.id">
                         <td class="py-3 pe-3 font-latin tabular-nums text-on-surface-variant">{{ b.time || '—' }}</td>
-                        <td class="py-3 pe-3 font-semibold text-on-surface">{{ b.service || '—' }}</td>
-                        <td class="hidden py-3 pe-3 text-on-surface-variant sm:table-cell">{{ b.doctor || '—' }}</td>
+                        <td lang="fa" dir="auto" class="py-3 pe-3 font-semibold text-on-surface">{{ b.service || '—' }}</td>
+                        <td lang="fa" dir="auto" class="hidden py-3 pe-3 text-on-surface-variant sm:table-cell">{{ b.doctor || '—' }}</td>
                         <td class="py-3 pe-3"><StatusPill :status="b.status" /></td>
                         <td class="hidden py-3 text-end tabular-nums text-on-surface md:table-cell">
                             {{ nf.format(b.total || 0) }} {{ t.dashOvCurrency }}

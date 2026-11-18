@@ -29,7 +29,7 @@ watch([() => props.selected, calendarSystem], () => {
     viewMonth.value = d(props.selected || todayIso).startOf('month')
 })
 
-const weekdays = computed(() => (isFa.value ? ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] : ['Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr']))
+const weekdays = computed(() => (isFa.value ? ['شن', 'یک', 'دو', 'سه', 'چه', 'پن', 'جم'] : ['Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr']))
 const busy = computed(() => new Set(props.busyDays))
 const nf = computed(() => new Intl.NumberFormat(isFa.value ? 'fa-IR' : 'en-US'))
 
@@ -100,5 +100,11 @@ const next = () => (viewMonth.value = viewMonth.value.add(1, 'month'))
                 </button>
             </template>
         </div>
+
+        <!-- راهنمای نقطه و حلقه -->
+        <p class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-on-surface-variant">
+            <span class="inline-flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />{{ t.dashCalBusyHint }}</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-3 w-3 rounded-full ring-1 ring-primary/60" aria-hidden="true" />{{ isFa ? 'امروز' : 'Today' }}</span>
+        </p>
     </section>
 </template>

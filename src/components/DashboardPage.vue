@@ -10,7 +10,6 @@ import { periodDelta } from '~/composables/useBookingStats'
 
 type NavId = 'overview' | 'calendar' | 'contacts' | 'services' | 'links' | 'reports' | 'automations' | 'settings'
 type CalView = 'today' | 'staff' | 'day' | 'week' | 'month'
-type LinkTab = 'events' | 'single' | 'polls' | 'routing'
 type ApptStatus = 'completed' | 'paid' | 'progress' | 'confirmed' | 'next' | 'buffer'
 
 interface Staff {
@@ -116,6 +115,7 @@ const { data: dashRes, refresh: refreshDash } = useAsyncData(
           status: string
           total: number
           phone?: string
+          paymentStatus?: string
           createdAt?: string
         }>
         dayBookings?: Array<{
@@ -171,7 +171,6 @@ const activeRoomsLabel = computed(() => {
 const overviewSlots = computed(() => (dashRes.value?.data.calendarSlots ?? []).filter((s) => !s.date || s.date === viewDate.value))
 const activeNav = ref<NavId>('overview')
 const calView = ref<CalView>('staff')
-const linkTab = ref<LinkTab>('events')
 const search = ref('')
 const copiedId = ref<string | null>(null)
 const bookingUrlCopied = ref(false)
@@ -193,67 +192,16 @@ const createError = ref('')
 const selectedBookingId = ref<string | null>(null)
 const showDatePicker = ref(false)
 
-const hours = [9, 10, 11, 12, 13, 14, 15, 16]
-const HOUR_ROW_REM = 4.5
 const GRID_START = 9
 const GRID_END = 17
 
 const clockNow = ref(new Date())
-const mouseLineTop = ref<number | null>(null)
-const guideTimeLabel = ref('')
 let clockTimer: ReturnType<typeof setInterval> | null = null
-
-function minutesToTop(totalMin: number) {
-  return (totalMin / 60) * HOUR_ROW_REM
-}
-
-function clampGuideTop(topRem: number) {
-  const max = (GRID_END - GRID_START) * HOUR_ROW_REM
-  return Math.min(Math.max(topRem, 0), max)
-}
-
-function formatGuideClock(totalMinFromStart: number) {
-  const absolute = GRID_START * 60 + totalMinFromStart
-  const h = Math.floor(absolute / 60)
-  const m = absolute % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-}
-
-/** خط زمان واقعی — هر ثانیه آپدیت */
-const nowLineTop = computed(() => {
-  const d = clockNow.value
-  const mins = (d.getHours() - GRID_START) * 60 + d.getMinutes() + d.getSeconds() / 60
-  if (mins < 0 || mins > (GRID_END - GRID_START) * 60) return null
-  return minutesToTop(mins)
-})
-
-/** خط راهنما: موس روی گرید → موس؛ وگرنه ساعت فعلی */
-const guideLineTop = computed(() => {
-  if (mouseLineTop.value != null) return mouseLineTop.value
-  return nowLineTop.value
-})
 
 const clockLabel = computed(() => {
   const d = clockNow.value
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 })
-
-function onGridMouseMove(e: MouseEvent) {
-  const el = e.currentTarget as HTMLElement | null
-  if (!el) return
-  const rect = el.getBoundingClientRect()
-  const y = e.clientY - rect.top
-  const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-  const topRem = clampGuideTop(y / remPx)
-  mouseLineTop.value = topRem
-  const mins = (topRem / HOUR_ROW_REM) * 60
-  guideTimeLabel.value = formatGuideClock(Math.round(mins))
-}
-
-function onGridMouseLeave() {
-  mouseLineTop.value = null
-  guideTimeLabel.value = ''
-}
 
 function formatMoney(n: number) {
   if (locale.value === 'fa') {
@@ -385,93 +333,49 @@ const calendarBlocks = computed<CalBlock[]>(() => {
   return fromStore
 })
 
-const filteredBlocks = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return calendarBlocks.value.filter((b) => {
-    if (!activeStaff.value.some((s) => s.id === b.staffId)) return false
-    if (!q) return true
-    return (
-      b.patient.toLowerCase().includes(q) ||
-      b.service.toLowerCase().includes(q) ||
-      b.id.toLowerCase().includes(q)
-    )
-  })
-})
-
 const moreOpen = ref(false)
 const moreRoot = ref<HTMLElement | null>(null)
 onClickOutside(moreRoot, () => (moreOpen.value = false))
 
-function blocksForStaff(staffId: string) {
-  return filteredBlocks.value.filter((b) => b.staffId === staffId)
-}
-
-function blockStyle(b: CalBlock) {
-  const top = ((b.startHour - GRID_START) * 60 + b.startMin) / 60 * HOUR_ROW_REM
-  const height = Math.max((b.durationMin / 60) * HOUR_ROW_REM, 1.75)
-  return { top: `${top}rem`, height: `${height}rem` }
-}
-
-function statusLabel(s: ApptStatus) {
-  const map: Record<ApptStatus, string> = {
-    completed: t.value.dashStatusCompleted,
-    paid: t.value.dashStatusPaid,
-    progress: t.value.dashStatusProgress,
-    confirmed: t.value.dashStatusConfirmed,
-    next: t.value.dashStatusNext,
-    buffer: t.value.dashRestBuffer,
-  }
-  return map[s]
-}
-
-function statusClass(s: ApptStatus) {
-  return {
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    paid: 'bg-sky-50 text-sky-700 border-sky-100',
-    progress: 'bg-amber-50 text-amber-800 border-amber-100',
-    confirmed: 'bg-primary/10 text-primary border-primary/15',
-    next: 'bg-violet-50 text-violet-700 border-violet-100',
-    buffer: 'bg-surface-container text-on-surface-variant border-outline-variant/20 border-dashed',
-  }[s]
-}
-
+/** لینک رزرو هر خدمت فعال؛ همان خدماتی که پایگاه‌داده دارد (شناسهٔ خدمت در ?service= می‌رود). */
 const eventTypes = computed(() =>
-  locale.value === 'fa'
-    ? [
-      { id: 'hifu', title: 'هایفوتراپی سه‌بعدی و لیفت SMAS', duration: 75, location: 'clinic' as const, kind: 'one' as const, color: '#d4a373' },
-      { id: 'profhilo', title: 'مزوژل جوانساز (پروفایلو)', duration: 45, location: 'clinic' as const, kind: 'one' as const, color: '#c47a5a' },
-      { id: 'filler', title: 'فیلر طبیعی و کانتورینگ لب', duration: 60, location: 'clinic' as const, kind: 'one' as const, color: '#7a5c8a' },
-      { id: 'consult', title: 'ویزیت تخصصی پوست و مو', duration: 30, location: 'online' as const, kind: 'one' as const, color: '#4f7d6a', shared: true },
-      { id: 'bridal', title: 'پکیج عروس VIP Glow', duration: 90, location: 'clinic' as const, kind: 'group' as const, color: '#b76e79' },
-    ]
-    : [
-      { id: 'hifu', title: '3D HIFU & SMAS lift', duration: 75, location: 'clinic' as const, kind: 'one' as const, color: '#d4a373' },
-      { id: 'profhilo', title: 'Profhilo mesogel', duration: 45, location: 'clinic' as const, kind: 'one' as const, color: '#c47a5a' },
-      { id: 'filler', title: 'Natural filler & lip contour', duration: 60, location: 'clinic' as const, kind: 'one' as const, color: '#7a5c8a' },
-      { id: 'consult', title: 'Dermatology consult', duration: 30, location: 'online' as const, kind: 'one' as const, color: '#4f7d6a', shared: true },
-      { id: 'bridal', title: 'Bridal VIP Glow package', duration: 90, location: 'clinic' as const, kind: 'group' as const, color: '#b76e79' },
-    ],
+  (dashRes.value?.data?.services ?? [])
+    .filter((s) => s.active !== false)
+    .map((s) => ({
+      id: s.id,
+      title: locale.value === 'fa' ? s.titleFa : s.titleEn,
+      duration: s.duration,
+      location: s.location,
+      color: s.color,
+    })),
 )
 
-const automations = ref([
-  { id: 'sms', on: true },
-  { id: 'email', on: true },
-  { id: 'buffer', on: true },
-  { id: 'sync', on: false },
-])
+const autoBusy = ref<'remind' | 'backup' | null>(null)
 
-try {
-  const rawAuto = localStorage.getItem('lumina-automations')
-  if (rawAuto) automations.value = JSON.parse(rawAuto) as typeof automations.value
-} catch {
-  /* ignore */
+async function sendReminders() {
+  if (!window.confirm(t.value.dashAutoRemindConfirm)) return
+  autoBusy.value = 'remind'
+  try {
+    const r = await $fetch<{ ok: boolean; sent: number }>('/api/admin/reminders', { method: 'POST' })
+    toast(`${t.value.dashAutoRemindDone}: ${r.sent}`)
+  } catch {
+    toast(t.value.dashAutoError, 'error')
+  } finally {
+    autoBusy.value = null
+  }
 }
 
-watch(
-  automations,
-  (v) => localStorage.setItem('lumina-automations', JSON.stringify(v)),
-  { deep: true },
-)
+async function runBackup() {
+  autoBusy.value = 'backup'
+  try {
+    await $fetch('/api/admin/backup', { method: 'POST' })
+    toast(t.value.dashAutoBackupDone)
+  } catch {
+    toast(t.value.dashAutoError, 'error')
+  } finally {
+    autoBusy.value = null
+  }
+}
 
 const reception = computed(() => {
   const progress = calendarBlocks.value.find((b) => b.status === 'progress')
@@ -479,7 +383,7 @@ const reception = computed(() => {
   return {
     patient: progress.patient,
     code: progress.fileNo || '—',
-    balance: progress.balance || (locale.value === 'fa' ? '۰ ت' : '0 T'),
+    balance: progress.balance ?? '',
     allergy: progress.allergy || '',
   }
 })
@@ -570,18 +474,48 @@ async function submitCreate() {
   }
 }
 
-async function setBookingStatus(id: string, status: string) {
+/** شناسهٔ رویداد تقویم برای نوبت‌های ساخته‌شده از bookings با `bk-` شروع می‌شود؛ API شناسهٔ خام می‌خواهد. */
+const rawBookingId = (id: string) => id.replace(/^bk-/, '')
+
+const selectedBooking = computed(() => {
+  const id = selectedBookingId.value
+  return id ? (dashRes.value?.data?.bookings ?? []).find((b) => b.id === rawBookingId(id)) : undefined
+})
+
+async function patchBooking(id: string, body: { status?: string; paymentStatus?: 'paid' | 'unpaid' }, okMessage: string) {
   try {
-    await $fetch(`/api/bookings/${id}`, { method: 'PATCH', body: { status } })
+    await $fetch(`/api/bookings/${rawBookingId(id)}`, { method: 'PATCH', body })
     await refreshDash()
+    selectedBookingId.value = null
+    toast(okMessage)
   } catch (e: unknown) {
-    window.alert((e as { data?: { statusMessage?: string } })?.data?.statusMessage || 'خطا')
+    toast((e as { data?: { statusMessage?: string } })?.data?.statusMessage || t.value.dashAutoError, 'error')
   }
 }
 
-const fcEvents = computed(() =>
-  calendarBlocks.value
+const setBookingStatus = (id: string, status: string) => patchBooking(id, { status }, t.value.dashStatusUpdated)
+
+/** تسویه: پول دریافت شد و نوبت در درآمد حساب می‌شود؛ «لغو تسویه» برعکس. */
+function toggleSettled(id: string) {
+  const settled = selectedBooking.value?.paymentStatus === 'paid'
+  return patchBooking(
+    id,
+    { paymentStatus: settled ? 'unpaid' : 'paid' },
+    settled ? t.value.dashUnsettleDone : t.value.dashSettleDone,
+  )
+}
+
+const fcEvents = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return calendarBlocks.value
     .filter((b) => b.status !== 'buffer')
+    .filter(
+      (b) =>
+        !q ||
+        b.patient.toLowerCase().includes(q) ||
+        b.service.toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q),
+    )
     .map((b) => {
       const start = new Date(
         `${viewDate.value}T${String(b.startHour).padStart(2, '0')}:${String(b.startMin).padStart(2, '0')}:00+03:30`,
@@ -595,8 +529,8 @@ const fcEvents = computed(() =>
         end: end.toISOString(),
         status: b.status,
       }
-    }),
-)
+    })
+})
 
 const publicBookUrl = computed(() => {
   if (typeof window === 'undefined') return '/book'
@@ -654,12 +588,6 @@ async function copyText(text: string, id?: string) {
       bookingUrlCopied.value = false
     }, 1600)
   }
-}
-
-function formatHour(h: number) {
-  const suffix = h < 12 ? 'AM' : 'PM'
-  const display = h > 12 ? h - 12 : h
-  return locale.value === 'fa' ? `${String(h).padStart(2, '0')}:00` : `${display}:00 ${suffix}`
 }
 
 function onKey(e: KeyboardEvent) {
@@ -948,6 +876,17 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <!-- فیلتر پزشک‌ها (همان وضعیت چک‌باکس‌های سایدبار) -->
+          <div class="flex flex-wrap items-center gap-2" role="group" :aria-label="t.dashActiveCalendars">
+            <button v-for="s in staffList" :key="s.id" type="button" :aria-pressed="s.active"
+              class="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border py-1 pe-3 ps-1 text-[12px] font-semibold transition-colors"
+              :class="s.active ? 'border-primary/40 bg-primary/15 text-on-surface' : 'border-outline-variant/30 bg-white text-on-surface-variant opacity-70 hover:opacity-100'"
+              @click="toggleStaff(s.id)">
+              <NuxtImg :src="s.photo" alt="" class="h-7 w-7 rounded-full object-cover" format="webp" width="56" loading="lazy" />
+              <span lang="fa" dir="auto">{{ s.name }}</span>
+            </button>
+          </div>
+
           <StaffCalendar :view-date="viewDate" :cal-view="calView"
             :staff="activeStaff.map((s) => ({ id: s.id, name: s.name }))" :events="fcEvents" @moved="refreshDash()"
             @select="selectedBookingId = $event" @create="openCreate($event)" />
@@ -955,9 +894,19 @@ onUnmounted(() => {
           <div v-if="selectedBookingId"
             class="flex flex-wrap items-center gap-2 rounded-2xl border border-outline-variant/20 bg-white p-3 text-[12px]">
             <span class="font-bold">{{ t.dashSelBooking }}</span>
-            <code class="font-latin text-primary">{{ selectedBookingId }}</code>
+            <code class="font-latin text-primary">{{ selectedBooking?.code ?? selectedBookingId }}</code>
+            <span v-if="selectedBooking"
+              class="rounded-full px-2 py-0.5 font-semibold"
+              :class="selectedBooking.paymentStatus === 'paid' ? 'bg-sage/60 text-on-surface' : 'bg-surface-container text-on-surface-variant'">
+              {{ selectedBooking.paymentStatus === 'paid' ? t.dashPaySettled : t.dashPayUnsettled }}
+            </span>
             <button type="button" class="rounded-full bg-primary/10 px-3 py-1.5 font-bold"
               @click="setBookingStatus(selectedBookingId, 'completed')">{{ t.dashActDone }}</button>
+            <button v-if="selectedBooking && selectedBooking.status !== 'cancelled' && selectedBooking.status !== 'no_show'"
+              type="button" class="rounded-full bg-primary px-3 py-1.5 font-bold text-on-primary"
+              @click="toggleSettled(selectedBookingId)">
+              {{ selectedBooking.paymentStatus === 'paid' ? t.dashActUnsettle : t.dashActSettle }}
+            </button>
             <button type="button" class="rounded-full bg-primary/10 px-3 py-1.5 font-bold"
               @click="setBookingStatus(selectedBookingId, 'confirmed')">{{ t.dashActConfirm }}</button>
             <button type="button" class="rounded-full border px-3 py-1.5 font-bold"
@@ -966,90 +915,6 @@ onUnmounted(() => {
               @click="setBookingStatus(selectedBookingId, 'cancelled')">{{ t.dashActCancel }}</button>
             <button type="button" class="ms-auto text-on-surface-variant"
               @click="selectedBookingId = null">{{ t.dashActClose }}</button>
-          </div>
-
-          <div class="overflow-x-auto rounded-2xl border border-outline-variant/20 bg-white shadow-sm">
-            <div class="min-w-180">
-              <!-- header row -->
-              <div class="grid sticky top-0 z-10 border-b border-outline-variant/15 bg-surface"
-                :style="{ gridTemplateColumns: `3.5rem repeat(${Math.max(activeStaff.length, 1)}, minmax(12rem, 1fr))` }">
-                <div />
-                <div v-for="s in activeStaff" :key="s.id"
-                  class="flex items-center gap-2 border-s border-outline-variant/15 px-3 py-3">
-                  <NuxtImg :src="s.photo" alt="" class="h-9 w-9 rounded-full object-cover" format="webp"
-                    loading="lazy" />
-                  <div class="min-w-0">
-                    <p class="truncate text-[13px] font-bold">{{ s.name }}</p>
-                    <p class="truncate text-[10px] text-on-surface-variant">{{ s.role }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- body: mouse moves the guide line -->
-              <div class="relative cursor-crosshair" @mousemove="onGridMouseMove" @mouseleave="onGridMouseLeave">
-                <div class="grid"
-                  :style="{ gridTemplateColumns: `3.5rem repeat(${Math.max(activeStaff.length, 1)}, minmax(12rem, 1fr))` }">
-                  <div class="relative border-e border-outline-variant/10">
-                    <div v-for="h in hours" :key="h" class="flex h-18 items-start justify-end pe-2 pt-1">
-                      <span class="font-latin text-[10px] text-on-surface-variant">{{ formatHour(h) }}</span>
-                    </div>
-                  </div>
-
-                  <div v-for="s in activeStaff" :key="`col-${s.id}`" class="relative border-s border-outline-variant/10"
-                    :style="{ height: `${hours.length * HOUR_ROW_REM}rem` }">
-                    <div v-for="h in hours" :key="`${s.id}-${h}`"
-                      class="absolute inset-x-0 border-b border-outline-variant/10"
-                      :style="{ top: `${(h - GRID_START) * HOUR_ROW_REM}rem`, height: `${HOUR_ROW_REM}rem` }" />
-
-                    <article v-for="b in blocksForStaff(s.id)" :key="b.id"
-                      class="absolute inset-x-1 z-10 overflow-hidden rounded-xl border px-2 py-1.5 shadow-sm"
-                      :class="statusClass(b.status)" :style="blockStyle(b)">
-                      <template v-if="b.status === 'buffer'">
-                        <p class="text-[10px] font-semibold opacity-80">{{ b.service }}</p>
-                      </template>
-                      <template v-else>
-                        <div class="flex items-start justify-between gap-1">
-                          <p class="truncate text-[11px] font-bold leading-tight">
-                            {{ b.patient }}
-                            <span v-if="b.vip" class="text-primary">VIP</span>
-                          </p>
-                          <Icon name="ph:video-camera" />
-                        </div>
-                        <p class="mt-0.5 line-clamp-2 text-[10px] leading-snug opacity-90">{{ b.service }}</p>
-                        <div class="mt-1 flex flex-wrap gap-1">
-                          <span class="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-bold">{{
-                            statusLabel(b.status) }}</span>
-                          <span v-if="b.unit" class="rounded-full bg-white/50 px-1.5 py-0.5 text-[9px]">{{ b.unit
-                          }}</span>
-                          <span v-if="b.price"
-                            class="rounded-full bg-white/50 px-1.5 py-0.5 text-[9px] font-semibold">{{ b.price }}</span>
-                        </div>
-                      </template>
-                    </article>
-                  </div>
-                </div>
-
-                <!-- current time (subtle) -->
-                <div v-if="nowLineTop != null && mouseLineTop == null"
-                  class="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-primary"
-                  :style="{ top: `${nowLineTop}rem` }">
-                  <span class="absolute -top-1.5 inset-s-0 h-3 w-3 rounded-full bg-primary" />
-                  <span
-                    class="absolute -top-2.5 inset-s-4 rounded bg-primary px-1.5 py-0.5 font-latin text-[9px] font-bold text-on-primary">{{
-                      clockLabel }}</span>
-                </div>
-
-                <!-- mouse guide line -->
-                <div v-if="guideLineTop != null && mouseLineTop != null"
-                  class="pointer-events-none absolute inset-x-0 z-30 border-t-2 border-primary"
-                  :style="{ top: `${guideLineTop}rem` }">
-                  <span class="absolute -top-1.5 inset-s-0 h-3 w-3 rounded-full bg-primary shadow" />
-                  <span
-                    class="absolute -top-2.5 inset-s-4 rounded bg-primary px-1.5 py-0.5 font-latin text-[9px] font-bold text-on-primary">{{
-                      guideTimeLabel }}</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           <p v-if="liveBooking" class="mt-3 text-[12px] text-on-surface-variant">
@@ -1071,58 +936,36 @@ onUnmounted(() => {
 
         <!-- BOOKING LINKS (Calendly event types) -->
         <section v-else-if="activeNav === 'links'" class="space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-[20px] font-bold">{{ t.dashNavLinks }}</h2>
-            <button type="button"
-              class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full bg-on-surface px-4 text-[12px] font-bold text-white">
-              <Icon name="ph:plus" />
-              {{ t.dashCreate }}
-            </button>
-          </div>
+          <h2 class="text-[20px] font-bold">{{ t.dashNavLinks }}</h2>
 
-          <div class="flex gap-1 overflow-x-auto border-b border-outline-variant/20 scrollbar-none">
-            <button v-for="tab in ([
-              ['events', t.dashTabEventTypes],
-              ['single', t.dashTabSingle],
-              ['polls', t.dashTabPolls],
-              ['routing', t.dashTabRouting],
-            ] as const)" :key="tab[0]" type="button"
-              class="shrink-0 cursor-pointer border-b-2 px-3 py-2 text-[12px] font-semibold"
-              :class="linkTab === tab[0] ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'"
-              @click="linkTab = tab[0]">
-              {{ tab[1] }}
-            </button>
-          </div>
+          <p v-if="!eventTypes.length"
+            class="rounded-card border border-dashed border-outline-variant/40 bg-white p-8 text-center text-[13px] text-on-surface-variant">
+            {{ t.dashLinksEmpty }}
+          </p>
 
-          <div v-if="linkTab === 'events'" class="space-y-3">
+          <div v-else class="space-y-3">
             <article v-for="ev in eventTypes" :key="ev.id"
-              class="overflow-hidden rounded-2xl border border-outline-variant/20 bg-white shadow-sm">
+              class="overflow-hidden rounded-card border border-outline-variant/25 bg-white shadow-card">
               <div class="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-0">
                 <div class="flex min-w-0 flex-1 items-stretch gap-3 sm:gap-0">
                   <div class="hidden w-1.5 self-stretch sm:block" :style="{ background: ev.color }" />
                   <div class="mt-1 h-10 w-1.5 rounded-full sm:hidden" :style="{ background: ev.color }" />
                   <div class="min-w-0 flex-1 py-1 sm:px-4 sm:py-4">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <h3 class="text-[15px] font-bold">{{ ev.title }}</h3>
-                      <span v-if="ev.shared"
-                        class="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-bold">{{
-                          t.dashShared }}</span>
-                    </div>
+                    <h3 lang="fa" dir="auto" class="text-[15px] font-bold">{{ ev.title }}</h3>
                     <p class="mt-1 text-[12px] text-on-surface-variant">
                       {{ ev.duration }} {{ t.dashMinutes }} ·
-                      {{ ev.location === 'clinic' ? t.dashClinicMeet : t.dashVideoMeet }} ·
-                      {{ ev.kind === 'one' ? t.dashOneOnOne : t.dashGroup }}
+                      {{ ev.location === 'clinic' ? t.dashClinicMeet : t.dashVideoMeet }}
                     </p>
                   </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2 sm:pe-4">
                   <button type="button"
-                    class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full border border-outline-variant/30 px-3 text-[12px] font-semibold"
-                    @click="copyText(`${publicBookUrl}?service=${encodeURIComponent(ev.title)}`, ev.id)">
+                    class="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full border border-outline-variant/30 px-3 text-[12px] font-bold hover:bg-surface-container-low"
+                    @click="copyText(`${publicBookUrl}?service=${encodeURIComponent(ev.id)}`, ev.id)">
                     <Icon name="ph:link" />
                     {{ copiedId === ev.id ? t.dashCopied : t.dashCopyLink }}
                   </button>
-                  <RouterLink :to="{ name: 'book', query: { service: ev.title } }"
+                  <RouterLink :to="{ name: 'book', query: { service: ev.id } }"
                     class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-outline-variant/30">
                     <Icon name="ph:arrow-square-out" />
                   </RouterLink>
@@ -1130,50 +973,43 @@ onUnmounted(() => {
               </div>
             </article>
           </div>
-          <div v-else
-            class="rounded-2xl border border-dashed border-outline-variant/40 bg-white p-8 text-center text-[13px] text-on-surface-variant">
-            {{ linkTab === 'single' ? t.dashTabSingle : linkTab === 'polls' ? t.dashTabPolls : t.dashTabRouting }}
-            — Calendly-style
-          </div>
         </section>
 
         <!-- REPORTS -->
         <section v-else-if="activeNav === 'reports'" class="space-y-4">
           <RevenuePanel v-model:period="revenuePeriod" :kpis="revenueKpis" :points="revenueDays" :by-service="revenueByService" :by-doctor="revenueByDoctor"
             :recent="revenueRecent" :loading="!dashRes" />
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
-              @click="$fetch('/api/admin/reminders', { method: 'POST' }).then((r: any) => toast('SMS: ' + r.sent)).catch(() => toast('خطا در ارسال', 'error'))">
-              ارسال یادآوری پیامک
-            </button>
-            <button type="button" class="rounded-full border px-4 py-2 text-[12px] font-bold"
-              @click="$fetch('/api/admin/backup', { method: 'POST' }).then((r: any) => toast(r.path)).catch(() => toast('خطا در بکاپ', 'error'))">
-              بکاپ SQLite
-            </button>
-          </div>
         </section>
 
-        <!-- AUTOMATIONS -->
-        <section v-else-if="activeNav === 'automations'" class=" mx-auto max-w-xl space-y-4">
+        <!-- OPERATIONS (real tools: reminders + backup) -->
+        <section v-else-if="activeNav === 'automations'" class="mx-auto max-w-xl space-y-4">
           <div>
             <h2 class="text-[20px] font-bold">{{ t.dashAutomationsTitle }}</h2>
             <p class="mt-1 text-[13px] text-on-surface-variant">{{ t.dashAutomationsDesc }}</p>
           </div>
-          <div class="space-y-2 rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm">
-            <label v-for="(auto, i) in automations" :key="auto.id"
-              class="flex min-h-12 cursor-pointer items-center justify-between rounded-xl px-3 hover:bg-surface-container-low">
-              <span class="text-[13px] font-semibold">
-                {{
-                  auto.id === 'sms'
-                    ? t.dashAutoSms
-                    : auto.id === 'email'
-                      ? t.dashAutoEmail
-                      : auto.id === 'buffer'
-                        ? t.dashAutoBuffer
-                        : t.dashAutoSync
-                }}
-              </span>
-              <input v-model="auto.on" type="checkbox" class="h-4 w-4 accent-primary" /> </label>
+          <div class="divide-y divide-outline-variant/15 rounded-card border border-outline-variant/25 bg-white shadow-card">
+            <div class="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-[14px] font-bold">{{ t.dashAutoRemindTitle }}</p>
+                <p class="mt-0.5 text-[12px] text-on-surface-variant">{{ t.dashAutoRemindDesc }}</p>
+              </div>
+              <button type="button" :disabled="autoBusy !== null"
+                class="min-h-10 cursor-pointer rounded-full bg-primary px-4 text-[12px] font-bold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                @click="sendReminders">
+                {{ t.dashAutoRun }}
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-[14px] font-bold">{{ t.dashAutoBackupTitle }}</p>
+                <p class="mt-0.5 text-[12px] text-on-surface-variant">{{ t.dashAutoBackupDesc }}</p>
+              </div>
+              <button type="button" :disabled="autoBusy !== null"
+                class="min-h-10 cursor-pointer rounded-full border border-outline-variant/30 px-4 text-[12px] font-bold hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                @click="runBackup">
+                {{ t.dashAutoRun }}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -1184,7 +1020,7 @@ onUnmounted(() => {
             <p class="mt-1 text-[13px] text-on-surface-variant">{{ t.dashAvailDesc }}</p>
           </div>
           <button type="button"
-            class="flex min-h-12 w-full cursor-pointer items-center justify-between rounded-2xl border border-outline-variant/20 bg-white px-4 text-start shadow-sm hover:bg-surface-container-low"
+            class="flex min-h-12 w-full cursor-pointer items-center justify-between rounded-card border border-outline-variant/25 bg-white px-4 text-start shadow-card hover:bg-surface-container-low"
             @click="availOpen = true">
             <span class="flex items-center gap-3 text-[14px] font-bold">
               <Icon name="ph:calendar_month" />
@@ -1201,25 +1037,21 @@ onUnmounted(() => {
 
         <!-- Smart reception widget -->
         <aside v-if="reception && activeNav === 'calendar'"
-          class="fixed bottom-4 inset-e-4 z-40 w-[min(100%-2rem,20rem)] overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-[0_20px_50px_-20px_rgba(138,72,83,0.45)]">
+          class="fixed bottom-4 inset-e-4 z-40 w-[min(100%-2rem,20rem)] overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-xl">
           <div class="bg-primary px-4 py-3 text-on-primary">
             <p class="text-[11px] font-bold opacity-90">{{ t.dashReceptionTitle }}</p>
             <p class="mt-0.5 text-[15px] font-bold">{{ reception.patient }}</p>
             <p class="font-latin text-[11px] opacity-80">{{ reception.code }}</p>
           </div>
           <div class="space-y-3 p-4">
-            <div class="flex items-center justify-between text-[13px]">
+            <div v-if="reception.balance" class="flex items-center justify-between text-[13px]">
               <span class="text-on-surface-variant">{{ t.dashReceptionBalance }}</span>
               <strong class="text-primary">{{ reception.balance }}</strong>
             </div>
             <div v-if="reception.allergy"
-              class="rounded-xl bg-[#faedcd] px-3 py-2 text-[11px] font-semibold text-primary">
+              class="rounded-xl bg-sand px-3 py-2 text-[11px] font-semibold text-primary">
               {{ t.dashReceptionAllergy }}: {{ reception.allergy }}
             </div>
-            <button type="button"
-              class="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary text-[13px] font-bold text-on-primary">
-              {{ t.dashReceptionSettle }}
-            </button>
             <textarea v-model="receptionNote" rows="2"
               class="w-full rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-primary/15"
               :placeholder="t.dashReceptionNote" />

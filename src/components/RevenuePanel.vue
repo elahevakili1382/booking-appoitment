@@ -175,7 +175,7 @@ const breakdowns = computed(() => [
                 <ul v-else class="mt-3 space-y-3">
                     <li v-for="r in b.rows" :key="r.name">
                         <div class="flex items-baseline justify-between gap-3 text-[13px]">
-                            <span class="min-w-0 truncate font-semibold text-on-surface">{{ r.name }}</span>
+                            <span lang="fa" dir="auto" class="min-w-0 truncate font-semibold text-on-surface">{{ r.name }}</span>
                             <span class="shrink-0 tabular-nums text-on-surface-variant">
                                 {{ money(r.revenue) }} · {{ pct.format(r.share) }}
                             </span>
@@ -208,8 +208,8 @@ const breakdowns = computed(() => [
                     <tbody class="divide-y divide-outline-variant/15">
                         <tr v-for="b in recent" :key="b.id">
                             <td class="py-3 pe-3 tabular-nums text-on-surface-variant">{{ showDay(b.date) }}</td>
-                            <td class="py-3 pe-3 font-semibold text-on-surface">{{ b.service || '—' }}</td>
-                            <td class="hidden py-3 pe-3 text-on-surface-variant sm:table-cell">{{ b.doctor || '—' }}</td>
+                            <td lang="fa" dir="auto" class="py-3 pe-3 font-semibold text-on-surface">{{ b.service || '—' }}</td>
+                            <td lang="fa" dir="auto" class="hidden py-3 pe-3 text-on-surface-variant sm:table-cell">{{ b.doctor || '—' }}</td>
                             <td class="py-3 pe-3"><StatusPill :status="b.status" /></td>
                             <td class="py-3 text-end tabular-nums text-on-surface">{{ money(b.total || 0) }}</td>
                         </tr>

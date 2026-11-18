@@ -66,7 +66,7 @@ const items = computed(() =>
                     <span class="material-symbols-outlined text-[18px]">{{ it.icon }}</span>
                 </span>
                 <div class="min-w-0 flex-1">
-                    <p class="truncate text-[12px] font-semibold text-on-surface">{{ it.title }}</p>
+                    <p lang="fa" dir="auto" class="truncate text-[12px] font-semibold text-on-surface">{{ it.title }}</p>
                     <p class="text-[11px] text-on-surface-variant">{{ it.status }} · {{ it.when }}</p>
                 </div>
             </li>

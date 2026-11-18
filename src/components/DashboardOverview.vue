@@ -2,6 +2,7 @@
 import { useLanguage } from '../i18n/useLanguage'
 import {
     addDays,
+    appointmentsDelta,
     isCounted,
     bookingsToCsv,
     lastNDays,
@@ -48,6 +49,7 @@ const greeting = computed(() => {
 })
 
 const delta = computed(() => periodDelta(props.bookings, props.viewDate))
+const apptDelta = computed(() => appointmentsDelta(props.bookings, props.viewDate))
 
 // نمودار کوچک کارت اول: تعداد نوبت‌های فعال در ۱۴ روز تقویمی منتهی به روز انتخاب‌شده
 const apptPoints = computed(() => {
@@ -91,18 +93,19 @@ function exportCsv() {
             </button>
         </header>
 
-        <DashboardKpiCards :stats="stats" :revenue-delta="delta" :loading="loading">
+        <DashboardKpiCards :stats="stats" :revenue-delta="delta" :appointments-delta="apptDelta" :loading="loading">
             <template #spark>
                 <KpiSparkline :points="apptPoints" :label="t.dashOvTrend" />
             </template>
         </DashboardKpiCards>
 
+        <!-- نوبت‌های روز اول، چون پذیرش اول باید بداند نوبت بعدی چیست -->
+        <OverviewAppointmentsTable :bookings="dayBookings" />
+
         <div class="grid gap-4 lg:grid-cols-3">
             <OverviewWeeklyChart :bookings="bookings" :end-date="viewDate" :loading="loading" class="lg:col-span-2" />
             <OverviewDoctors :doctors="doctors" :slots="slots" />
         </div>
-
-        <OverviewAppointmentsTable :bookings="dayBookings" />
         </div>
 
         <!-- ستون کناری: تقویم ماهانه و فعالیت‌های اخیر -->

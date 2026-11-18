@@ -74,7 +74,7 @@ const chartOptions = computed(() => ({
     animation: reduceMotion.value ? (false as const) : { duration: 500 },
     interaction: { mode: 'index' as const, intersect: false },
     scales: {
-        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Vazirmatn', size: 11 } } },
+        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkip: false, padding: 8, font: { family: 'Vazirmatn', size: 11 } } },
         y: {
             stacked: true,
             beginAtZero: true,
@@ -104,15 +104,15 @@ const chartOptions = computed(() => ({
             </ul>
         </header>
 
-        <div v-if="loading" class="mt-4 h-56 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"
+        <div v-if="loading" class="mt-4 h-44 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"
             aria-hidden="true" />
 
-        <p v-else-if="total === 0" class="mt-4 grid h-56 place-items-center rounded-xl bg-surface-container-low px-4 text-center text-[13px] text-on-surface-variant">
+        <p v-else-if="total === 0" class="mt-4 grid h-44 place-items-center rounded-xl bg-surface-container-low px-4 text-center text-[13px] text-on-surface-variant">
             {{ t.dashOvWeekEmpty }}
         </p>
 
         <template v-else>
-            <div class="relative mt-4 h-56" aria-hidden="true">
+            <div class="relative mt-4 h-44" aria-hidden="true">
                 <ClientOnly>
                     <Bar :data="chartData" :options="chartOptions" />
                     <template #fallback>

@@ -31,6 +31,34 @@ const emit = defineEmits<{
 }>()
 
 const { locale, t } = useLanguage()
+
+/** رنگ توکن طراحی (فقط سمت کلاینت) */
+function css(name: string, fallback: string) {
+  if (typeof window === 'undefined') return fallback
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
+
+/** رنگ بلوک نوبت بر اساس وضعیت؛ متن همیشه تیره تا کنتراست کافی باشد */
+function toFcEvent(e: { id: string; staffId: string; title: string; start: string; end: string; status: string }) {
+  const bg =
+    e.status === 'cancelled'
+      ? css('--color-outline-variant', '#d4ceb8')
+      : e.status === 'completed' || e.status === 'paid'
+        ? css('--color-sage', '#ccd5ae')
+        : e.status === 'progress'
+          ? css('--color-secondary', '#a9845a')
+          : css('--color-primary', '#d4a373')
+  return {
+    id: e.id,
+    resourceId: e.staffId,
+    title: e.title,
+    start: e.start,
+    end: e.end,
+    backgroundColor: bg,
+    borderColor: 'transparent',
+    textColor: css('--color-ink', '#3d3426'),
+  }
+}
 const calRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 const failed = shallowRef(false)
 const failMsg = shallowRef('')
@@ -66,15 +94,7 @@ const options = computed<CalendarOptions>(() => ({
   selectable: true,
   selectMirror: true,
   resources: props.staff.map((s) => ({ id: s.id, title: s.name })),
-  events: props.events.map((e) => ({
-    id: e.id,
-    resourceId: e.staffId,
-    title: e.title,
-    start: e.start,
-    end: e.end,
-    backgroundColor: e.status === 'cancelled' ? '#c4b5b5' : '#d4a373',
-    borderColor: 'transparent',
-  })),
+  events: props.events.map(toFcEvent),
   eventClick: (info) => emit('select', info.event.id),
   select: (info) => {
     const staffId = info.resource?.id || props.staff[0]?.id
@@ -129,16 +149,7 @@ watch(
       props.staff.map((s) => ({ id: s.id, title: s.name })),
     )
     api.removeAllEvents()
-    for (const e of props.events) {
-      api.addEvent({
-        id: e.id,
-        resourceId: e.staffId,
-        title: e.title,
-        start: e.start,
-        end: e.end,
-        backgroundColor: e.status === 'cancelled' ? '#c4b5b5' : '#d4a373',
-      })
-    }
+    for (const e of props.events) api.addEvent(toFcEvent(e))
   },
   { deep: true },
 )
@@ -146,7 +157,7 @@ watch(
 
 <template>
   <div class="relative overflow-hidden rounded-2xl border border-outline-variant/20 bg-white p-2 shadow-sm">
-    <div v-if="failed" class="rounded-xl bg-[#faedcd] p-4 text-[13px] text-primary">
+    <div v-if="failed" class="rounded-xl bg-sand p-4 text-[13px] text-primary">
       تقویم پیشرفته لود نشد — نمای ساده پایین صفحه فعال است.
       <span class="mt-1 block font-latin text-[11px] opacity-70">{{ failMsg }}</span>
     </div>
