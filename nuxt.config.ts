@@ -128,9 +128,5 @@ app: {
     externals: {
       inline: ['dayjs'],
     },
-    moduleSideEffects: ['better-sqlite3'],
-    rollupConfig: {
-      external: ['better-sqlite3'],
-    },
   },
 })

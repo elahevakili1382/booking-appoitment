@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import Database from 'better-sqlite3'
+import embeddedSeed from '../../data/store.json'
 import { SCHEMA_SQL } from './schema'
 import { tehranToday } from '../utils/dates'
 
@@ -260,9 +261,12 @@ const DEMO_SERVICES: DemoService[] = [
 function dbPath() {
   const config = useRuntimeConfig()
 
-  const path = config.dbPath
-    ? String(config.dbPath)
+  // روی Vercel فایل‌سیستم فقط‌خواندنی است و فقط /tmp قابل نوشتن است (داده بین نمونه‌ها پایدار نیست).
+  const defaultPath = process.env.VERCEL
+    ? join('/tmp', 'lumina.sqlite')
     : join(process.cwd(), 'data', 'lumina.sqlite')
+
+  const path = config.dbPath ? String(config.dbPath) : defaultPath
 
   if (path !== ':memory:') {
     const dir = dirname(path)
@@ -345,12 +349,13 @@ function nowIso() {
 }
 
 function seedFromJson(db: Database.Database) {
+  // محلی: فایل data/store.json (قابل ویرایش). روی Vercel فایل کنار کد نیست؛ نسخهٔ داخل بسته استفاده می‌شود.
   const seedPath = join(process.cwd(), 'data', 'store.json')
 
-  if (!existsSync(seedPath)) return
-
-  const raw = JSON.parse(
-    readFileSync(seedPath, 'utf-8'),
+  const raw = (
+    existsSync(seedPath)
+      ? JSON.parse(readFileSync(seedPath, 'utf-8'))
+      : embeddedSeed
   ) as SeedData
 
   const doctors = raw.doctors || []
