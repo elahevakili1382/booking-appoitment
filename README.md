@@ -23,7 +23,15 @@ A bilingual (FA/EN, RTL-first) website and admin dashboard for a skin & beauty c
 
 ## Viewing the dashboard
 
-The dashboard is protected by a one-time-code login, and no real SMS provider is connected, so **sign-in does not work on the hosted (Vercel) demo**; the public pages do. To explore the dashboard, run it locally (about two minutes):
+### On the hosted demo (one click, read-only)
+
+The dashboard is protected by a one-time-code login and no real SMS provider is connected. So the hosted demo has a **demo mode**: open `/login` and press **مشاهدهٔ نمایشی داشبورد** (*View the dashboard, demo*). You are signed in without a phone number or code, as a **read-only** user. A banner says so, every write button is hidden or disabled, and the server rejects any change with `403`. The data is fake sample data.
+
+Demo mode is **off by default**. To turn it on for a deployment, set the environment variable `NUXT_PUBLIC_DEMO=true` (for example in Vercel → Settings → Environment Variables) and redeploy. Only enable it on a deployment that holds demo data, because every visitor can read the dashboard.
+
+### Run it locally (admin, can edit)
+
+To use the dashboard with full admin rights, run it locally (about two minutes):
 
 1. Install **Node.js 22 or newer** and Git.
 2. Clone and start the app:
@@ -50,7 +58,9 @@ The receptionist account `09121111111` has the same dashboard with fewer admin-o
 
 ### راهنمای فارسی
 
-داشبورد با کد یک‌بارمصرف وارد می‌شود و پیامک واقعی وصل نیست، پس **روی نسخهٔ آنلاین (Vercel) ورود ممکن نیست**. برای دیدن داشبورد پروژه را روی رایانهٔ خود اجرا کنید: Node.js نسخهٔ ۲۲ یا بالاتر را نصب کنید، سپس `npm install` و `npm run dev` را بزنید و صفحهٔ `/login` را باز کنید. شمارهٔ `09120000000` را وارد کنید، «دریافت کد» را بزنید؛ کد آزمایشی روی همان صفحه نمایش داده می‌شود. بعد از ورود به `/dashboard` می‌روید. درآمد تا وقتی حداقل یک نوبت را از روی تقویم «تسویه» نکنید صفر می‌ماند.
+**نسخهٔ آنلاین:** در صفحهٔ `/login` دکمهٔ «مشاهدهٔ نمایشی داشبورد» را بزنید. بدون شماره و کد، فقط برای مشاهده وارد می‌شوید؛ دادهٔ ساختگی است و هیچ‌چیز را نمی‌شود تغییر داد (سرور هر تغییر را با ۴۰۳ رد می‌کند). این حالت به‌صورت پیش‌فرض خاموش است و فقط با متغیر `NUXT_PUBLIC_DEMO=true` روشن می‌شود.
+
+**اجرای لوکال با دسترسی کامل:** Node.js نسخهٔ ۲۲ یا بالاتر را نصب کنید، `npm install` و `npm run dev` را بزنید و صفحهٔ `/login` را باز کنید. شمارهٔ `09120000000` را وارد کنید، «دریافت کد» را بزنید؛ کد آزمایشی روی همان صفحه نمایش داده می‌شود. بعد از ورود به `/dashboard` می‌روید. درآمد تا وقتی حداقل یک نوبت را از روی تقویم «تسویه» نکنید صفر می‌ماند.
 
 ## Stack
 
@@ -84,10 +94,11 @@ Runtime values live in `nuxt.config.ts` and can be overridden with Nuxt environm
 - `NUXT_SESSION_SECRET` – **change this in any non-local environment** (a development default is used otherwise)
 - `NUXT_DB_PATH` – path of the SQLite file (default `data/lumina.sqlite`, git-ignored)
 - `NUXT_PUBLIC_OTP_MOCK` – mock SMS/OTP (enabled outside production)
+- `NUXT_PUBLIC_DEMO` – set to `true` to show the one-click, read-only demo login (default off; demo data only)
 
 ## Known limitations
 
-- No real SMS provider is implemented, so one-time-code login works only with the development mock (the hosted demo cannot sign in; see *Viewing the dashboard*).
+- No real SMS provider is implemented, so one-time-code login works only with the development mock (the hosted demo uses the read-only demo login instead; see *Viewing the dashboard*).
 - Payments use a test merchant configuration.
 - Data is stored in a local SQLite file, which is not suitable for serverless hosting such as Vercel; use a hosted database or a Node server with a persistent disk.
 - API smoke-test scripts are in `scripts/`; there is no CI or unit-test suite yet.
