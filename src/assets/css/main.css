@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* آیکون‌ها محلی هستند (بدون وابستگی به Google Fonts). در لایهٔ base تا کلاس‌های text-[..] برنده شوند. */
+@import "material-symbols/outlined.css" layer(base);
 
 /**
  * Lumina × Pegasus palette — Coolors
@@ -473,5 +475,40 @@
 @layer utilities {
   .icon-fill {
     font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+  }
+}
+
+/* ——— FullCalendar theme (توکن‌های طراحی) ———
+ * بدون @layer نوشته شده، چون استایل تزریق‌شدهٔ FullCalendar هم بدون layer است. */
+.fc.fc-theme-standard {
+  --fc-border-color: rgba(61, 52, 38, 0.1);
+  --fc-page-bg-color: transparent;
+  --fc-today-bg-color: rgba(212, 163, 115, 0.08);
+  --fc-now-indicator-color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.fc.fc-theme-standard .fc-col-header-cell-cushion {
+  padding: 0.6rem 0.4rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+.fc.fc-theme-standard .fc-timegrid-slot-label-cushion {
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.fc.fc-theme-standard .fc-event,
+.fc.fc-theme-standard .fc-timegrid-event {
+  border-radius: 10px;
+  padding: 2px 4px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* داده‌های فارسی دیتابیس داخل رابط انگلیسی با فونت فارسی نمایش داده شوند */
+@layer base {
+  [lang="fa"] {
+    font-family: var(--font-sans);
   }
 }

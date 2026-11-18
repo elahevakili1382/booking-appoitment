@@ -103,10 +103,6 @@ app: {
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap',
       },
-      {
-  rel: 'stylesheet',
-  href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap',
-},
     ],
   },
 },

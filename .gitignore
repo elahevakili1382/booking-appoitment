@@ -33,3 +33,4 @@ dist/
 .claude/
 skills-lock.json
 REPORT.md
+*.tsbuildinfo
