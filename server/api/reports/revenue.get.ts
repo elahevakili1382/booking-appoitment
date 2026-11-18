@@ -8,7 +8,7 @@ export default defineEventHandler((event) => {
     .prepare(
       `SELECT s.title_fa AS name, SUM(b.total) AS revenue, COUNT(*) AS count
        FROM bookings b JOIN services s ON s.id = b.service_id
-       WHERE b.status NOT IN ('cancelled','no_show')
+       WHERE b.payment_status = 'paid' AND b.status NOT IN ('cancelled','no_show')
        GROUP BY s.id ORDER BY revenue DESC`,
     )
     .all()
@@ -16,7 +16,7 @@ export default defineEventHandler((event) => {
     .prepare(
       `SELECT st.name_fa AS name, SUM(b.total) AS revenue, COUNT(*) AS count
        FROM bookings b JOIN staff st ON st.id = b.staff_id
-       WHERE b.status NOT IN ('cancelled','no_show')
+       WHERE b.payment_status = 'paid' AND b.status NOT IN ('cancelled','no_show')
        GROUP BY st.id ORDER BY revenue DESC`,
     )
     .all()

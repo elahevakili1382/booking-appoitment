@@ -56,6 +56,7 @@ function mapBooking(row: Record<string, unknown>): BookingRecord {
     notes: String(row.notes || ''),
     total: Number(row.total || 0),
     status: row.status as BookingRecord['status'],
+    paymentStatus: String(row.payment_status || 'unpaid'),
     createdAt: String(row.created_at),
   }
 }
@@ -131,7 +132,7 @@ export function readStore(): StoreData {
   // approximate with Tehran day via bookings.date mapped
   const appointmentsToday = bookings.filter((b) => b.date === today && b.status !== 'cancelled').length
   const revenueToday = bookings
-    .filter((b) => b.date === today && b.status !== 'cancelled')
+    .filter((b) => b.date === today && b.paymentStatus === 'paid' && b.status !== 'cancelled' && b.status !== 'no_show')
     .reduce((s, b) => s + b.total, 0)
 
   return {

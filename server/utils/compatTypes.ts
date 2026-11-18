@@ -45,6 +45,8 @@ export interface BookingRecord {
   notes?: string
   total: number
   status: 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'no_show'
+  /** unpaid | deposit_paid | paid (تسویه‌شده). درآمد فقط از paid حساب می‌شود. */
+  paymentStatus?: string
   createdAt: string
 }
 

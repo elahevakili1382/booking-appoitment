@@ -1,5 +1,5 @@
 import {
-  isCounted,
+  isRevenue,
   lastNDays,
   revenueByDay,
   type BookingLite,
@@ -17,10 +17,10 @@ export function recentBookings(bookings: BookingLite[], limit =  8): BookingLite
     }).slice(0, limit) 
 }
 
-/** نوبت‌های شمرده‌شده (غیر از لغو/غیبت) در `period` روز تقویمی منتهی به `endIso`. */
+/** نوبت‌های تسویه‌شده (درآمدزا) در `period` روز تقویمی منتهی به `endIso`. */
 function countedInRange(bookings: BookingLite[], endIso: string, period: number): BookingLite[] {
   const days = new Set(lastNDays(endIso, period))
-  return bookings.filter((b) => b.date !== undefined && days.has(b.date) && isCounted(b.status))
+  return bookings.filter((b) => b.date !== undefined && days.has(b.date) && isRevenue(b))
 }
 
 /** درآمد هر روز برای نمودار؛ روزهای بدون نوبت هم با صفر می‌آیند. */

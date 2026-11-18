@@ -10,6 +10,8 @@ export interface BookingLite {
   service?: string
   doctor?: string
   phone?: string
+  /** unpaid | deposit_paid | paid */
+  paymentStatus?: string
   createdAt?: string
 }
 
@@ -20,6 +22,11 @@ export const STATUS_GROUPS: StatusGroup[] = ['completed', 'confirmed', 'pending'
 /** درآمد فقط از نوبت‌هایی حساب می‌شود که لغو یا غیبت نشده‌اند. */
 export function isCounted(status: string) {
   return status !== 'cancelled' && status !== 'no_show'
+}
+
+/** درآمد فقط از نوبت‌های تسویه‌شده (پول دریافت شده) و لغو/غیبت‌نشده حساب می‌شود. */
+export function isRevenue(b: Pick<BookingLite, 'status' | 'paymentStatus'>) {
+  return b.paymentStatus === 'paid' && isCounted(b.status)
 }
 
 export function groupOf(status: string): StatusGroup {
@@ -43,7 +50,7 @@ export function lastNDays(endIso: string, n: number): string[] {
 export function revenueByDay(bookings: BookingLite[], days: string[]): number[] {
   const sums = new Map(days.map((d) => [d, 0]))
   for (const b of bookings) {
-    if (b.date && sums.has(b.date) && isCounted(b.status)) sums.set(b.date, sums.get(b.date)! + (b.total || 0))
+    if (b.date && sums.has(b.date) && isRevenue(b)) sums.set(b.date, sums.get(b.date)! + (b.total || 0))
   }
   return days.map((d) => sums.get(d) ?? 0)
 }
@@ -58,10 +65,6 @@ export function statusCountsByDay(bookings: BookingLite[], days: string[]): Reco
   return out
 }
 
-/**
- * تغییر درآمد `span` روز آخر نسبت به `span` روز قبل از آن، به صورت کسر (0.12 = +۱۲٪).
- * اگر دورهٔ قبل درآمدی نداشته باشد null برمی‌گردد، چون درصد معنی ندارد.
- */
 export function periodDelta(bookings: BookingLite[], endIso: string, span = 7): number | null {
   const days = lastNDays(endIso, span * 2)
   const rev = revenueByDay(bookings, days)
@@ -69,6 +72,23 @@ export function periodDelta(bookings: BookingLite[], endIso: string, span = 7): 
   const curr = rev.slice(span).reduce((a, b) => a + b, 0)
   return prev > 0 ? (curr - prev) / prev : null
 }
+
+export function appointmentsDelta(bookings: BookingLite[], endIso: string, span = 7): number | null{
+  const days = lastNDays(endIso, span * 2)
+  const grouped  = statusCountsByDay(bookings, days) 
+  const counts = days.map((_,i) => 
+       (grouped.completed[i] ?? 0) 
+     + (grouped.confirmed[i] ?? 0) 
+     + (grouped.pending[i] ?? 0)
+  )
+ const prev = counts.slice(0, span).reduce((a, b) => a + b, 0)
+  const curr = counts.slice(span).reduce((a, b) => a + b, 0)
+    return prev > 0 ? (curr - prev) / prev : null
+
+}
+
+
+
 
 /** سلول CSV امن: گیومه‌گذاری و جلوگیری از اجرای فرمول در Excel (CSV injection). */
 export function csvCell(value: unknown): string {

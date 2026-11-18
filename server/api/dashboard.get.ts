@@ -46,7 +46,7 @@ export default defineEventHandler((event) => {
         db
           .prepare(
             `SELECT COALESCE(SUM(total),0) AS s FROM bookings
-         WHERE status NOT IN ('cancelled','no_show') AND starts_at LIKE ?`,
+         WHERE payment_status = 'paid' AND status NOT IN ('cancelled','no_show') AND starts_at LIKE ?`,
           )
           .get(`${monthPrefix}%`) as { s: number }
       ).s

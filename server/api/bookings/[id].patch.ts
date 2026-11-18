@@ -4,6 +4,7 @@ import { toUtcIso } from '../../db'
 import { requireUser, ownStaffIds, userOwnsBooking } from '../../utils/auth'
 
 const STATUSES = ['confirmed', 'pending', 'completed', 'cancelled', 'no_show']
+const PAYMENT_INPUTS = ['paid', 'unpaid']
 const STAFF_FIELDS = ['status', 'notes']
 const CUSTOMER_FIELDS = ['status']
 
@@ -25,6 +26,8 @@ export default defineEventHandler(async (event) => {
   const body =
     (await readBody<{
       status?: string
+      /** فقط admin/receptionist: paid = تسویه‌شده، unpaid = لغو تسویه */
+      paymentStatus?: string
       staffId?: string
       date?: string
       time?: string
@@ -35,6 +38,10 @@ export default defineEventHandler(async (event) => {
 
   if (body.status !== undefined && !STATUSES.includes(String(body.status))) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid status' })
+  }
+
+  if (body.paymentStatus !== undefined && !PAYMENT_INPUTS.includes(String(body.paymentStatus))) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid payment status' })
   }
 
   const db = getDb()
@@ -73,6 +80,17 @@ export default defineEventHandler(async (event) => {
     return { ok: true, data: { id, status: 'cancelled' } }
   }
 
+  // تسویه: فقط نوبتِ لغو/غیبت‌نشده. لغو تسویه به وضعیت قبلی (بیعانه یا پرداخت‌نشده) برمی‌گردد.
+  let paymentStatus: string | null = null
+  if (body.paymentStatus === 'paid') {
+    if (row.status === 'cancelled' || row.status === 'no_show') {
+      throw createError({ statusCode: 400, statusMessage: 'Cancelled or no-show bookings cannot be settled' })
+    }
+    paymentStatus = 'paid'
+  } else if (body.paymentStatus === 'unpaid') {
+    paymentStatus = Number(row.deposit) > 0 ? 'deposit_paid' : 'unpaid'
+  }
+
   const staffId = body.staffId || String(row.staff_id)
   let startsAt = body.startsAt || String(row.starts_at)
   let endsAt = body.endsAt || String(row.ends_at)
@@ -89,9 +107,20 @@ export default defineEventHandler(async (event) => {
   }
 
   db.prepare(
-    `UPDATE bookings SET staff_id = ?, starts_at = ?, ends_at = ?, status = COALESCE(?, status), notes = COALESCE(?, notes)
+    `UPDATE bookings SET staff_id = ?, starts_at = ?, ends_at = ?, status = COALESCE(?, status), notes = COALESCE(?, notes),
+       payment_status = COALESCE(?, payment_status)
      WHERE id = ?`,
-  ).run(staffId, startsAt, endsAt, body.status ?? null, body.notes ?? null, id)
+  ).run(staffId, startsAt, endsAt, body.status ?? null, body.notes ?? null, paymentStatus, id)
 
-  return { ok: true, data: { id, staffId, startsAt, endsAt, status: body.status || row.status } }
+  return {
+    ok: true,
+    data: {
+      id,
+      staffId,
+      startsAt,
+      endsAt,
+      status: body.status || row.status,
+      paymentStatus: paymentStatus ?? row.payment_status,
+    },
+  }
 })
