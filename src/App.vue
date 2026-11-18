@@ -20,12 +20,15 @@ useHead({
     lang: () => (isFa.value ? 'fa' : 'en'),
     dir: () => (isFa.value ? 'rtl' : 'ltr'),
   },
+  // نام برند فقط وقتی اضافه می‌شود که خود عنوان صفحه آن را نداشته باشد (جلوگیری از عنوان تکراری)
+  titleTemplate: (title?: string) =>
+    !title || /Lumina|لومینا/i.test(title) ? title ?? 'کلینیک لومینا' : `${title} | کلینیک لومینا`,
 })
 
 // ───────── متا تگ‌های پیش‌فرض (داینامیک) ─────────
 useSeoMeta({
   // عنوان کوتاه (titleTemplate از nuxt.config.ts اعمال می‌شود)
-  title: () => (isFa.value ? 'کلینیک لومینا' : 'Lumina Clinic'),
+  title: () => (isFa.value ? 'کلینیک پوست، مو و زیبایی لومینا' : 'Lumina Clinic — Skin, Hair & Beauty'),
 
   // توضیحات
   description: () =>

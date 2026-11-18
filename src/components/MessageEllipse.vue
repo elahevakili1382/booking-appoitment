@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
 <template>
     <section ref="root" class="relative h-screen w-full overflow-hidden">
         <div ref="frame" class="absolute inset-0" style="clip-path: ellipse(22% 70% at 50% 100%)">
-            <img ref="img" src="/images/clinic.jpg" alt="فضای داخلی کلینیک لومینا"
+            <img ref="img" src="/images/clinic.webp" alt="فضای داخلی کلینیک لومینا"
                 class="h-full w-full object-cover will-change-transform" />
         </div>
     </section>

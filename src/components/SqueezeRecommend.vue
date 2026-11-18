@@ -8,11 +8,11 @@ import { useLanguage } from '../i18n/useLanguage'
 const { t, locale } = useLanguage()
 const h = computed(() => (locale.value === 'fa' ? homeFa : homeEn))
 
-/** Reliable Unsplash + local clinic assets for squeeze panels */
+/** Local clinic assets for squeeze panels */
 const images = [
-  'https://images.unsplash.com/photo-1570172613284-da78bd5aff29?auto=format&fit=crop&w=1400&q=80',
-  'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=1400&q=80',
-  'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=1400&q=80',
+  '/services/laser.jpg',
+  '/services/facial-care.jpg',
+  '/first-visit/first-visit.jpg',
   assets.services[0],
   assets.services[1],
   assets.gallery[1].after,

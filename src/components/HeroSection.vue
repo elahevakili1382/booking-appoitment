@@ -5,11 +5,11 @@ import { motion } from 'motion-v'
 import { useIntervalFn, usePreferredReducedMotion } from '@vueuse/core'
 import { useLanguage } from '../i18n/useLanguage'
 
-import clinic01 from '~/assets/hero/clinic-01.jpg'
-import clinic02 from '~/assets/hero/clinic-02.jpg'
-import clinic03 from '~/assets/hero/clinic-03.jpg'
-import clinic04 from '~/assets/hero/clinic-04.jpg'
-import clinic05 from '~/assets/hero/clinic-05.jpg'
+import clinic01 from '~/assets/hero/clinic-01.webp'
+import clinic02 from '~/assets/hero/clinic-02.webp'
+import clinic03 from '~/assets/hero/clinic-03.webp'
+import clinic04 from '~/assets/hero/clinic-04.webp'
+import clinic05 from '~/assets/hero/clinic-05.webp'
 
 const { locale } = useLanguage()
 const reduce = usePreferredReducedMotion()
@@ -63,18 +63,18 @@ function go(i: number) {
         <path d="M12 2l1.15 8.85L22 12l-8.85 1.15L12 22l-1.15-8.85L2 12l8.85-1.15L12 2z" />
       </svg>
     </span>
-    <span class="pointer-events-none absolute end-[30%] top-[38%] z-5 text-[#d4a373]/28" aria-hidden="true">
+    <span class="pointer-events-none absolute inset-e-[30%] top-[38%] z-5 text-[#d4a373]/28" aria-hidden="true">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2l1.15 8.85L22 12l-8.85 1.15L12 22l-1.15-8.85L2 12l8.85-1.15L12 2z" />
       </svg>
     </span>
 
     <div
-      class="relative z-10 mx-auto flex min-h-dvh w-full max-w-[1500px] flex-col items-center justify-center px-page pb-20 pt-[calc(5.5rem+env(safe-area-inset-top))] lg:block lg:pb-0 lg:pt-0">
+      class="relative z-10 mx-auto flex min-h-dvh w-full max-w-375 flex-col items-center justify-center px-page pb-20 pt-[calc(5.5rem+env(safe-area-inset-top))] lg:block lg:pb-0 lg:pt-0">
 
       <!-- بیضی + سوایپر -->
       <div
-        class="relative z-10 mx-auto w-[min(78vw,340px)] shrink-0 sm:w-[min(62vw,400px)] lg:absolute lg:left-1/2 lg:top-1/2 lg:w-[min(38vw,460px)] lg:-translate-x-1/2 lg:-translate-y-[46%]">
+        class="relative z-10 mx-auto w-[min(78vw,340px)] shrink-0 sm:w-[min(62vw,400px)] lg:absolute lg:left-1/2 lg:top-1/2 lg:w-[min(38vw,460px)] lg:-translate-x-1/2 lg:translate-y-[-46%]">
 
         <!--  -->
         <div class="relative">
@@ -87,17 +87,18 @@ function go(i: number) {
             class="ring-line ring-line--slow pointer-events-none absolute -inset-6 rounded-[50%] border border-[#d4a373]/25 lg:-inset-9">
           </div>
           <div
-            class="relative aspect-[3/4] w-full overflow-hidden rounded-[50%] bg-[#e9edc9] shadow-[0_28px_70px_-30px_rgba(61,52,38,0.38)] ring-1 ring-[#d4a373]/20">
+            class="relative aspect-3/4 w-full overflow-hidden rounded-[50%] bg-[#e9edc9] ring-2 ring-[#d4a373]/60 shadow-[0_0_80px_-10px_rgba(212,163,115,0.8)]">
             <img v-for="(slide, i) in slides" :key="i" :src="slide.src" :alt="slide.alt" class="hero-slide"
               :class="{ 'is-active': i === active }" :fetchpriority="i === 0 ? 'high' : 'low'" decoding="async" />
             <div
-              class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#3d3426]/20 via-transparent to-[#fefae0]/12" />
+              class="pointer-events-none absolute inset-0 bg-linear-to-t from-[#3d3426]/20 via-transparent to-[#fefae0]/12" />
           </div>
         </div>
 
 
         <!-- نقاط -->
-        <div class="mt-4 flex justify-center gap-2 lg:absolute lg:-bottom-10 lg:start-1/2 lg:mt-0 lg:-translate-x-1/2">
+        <div
+          class="mt-4 flex justify-center gap-2 lg:absolute lg:-bottom-10 lg:inset-s-1/2 lg:mt-0 lg:-translate-x-1/2">
           <button v-for="(_, i) in slides" :key="i" type="button" class="h-1.5 rounded-full transition-all duration-300"
             :class="i === active ? 'w-6 bg-[#d4a373]' : 'w-1.5 bg-[#ccd5ae] hover:bg-[#d4a373]/60'"
             :aria-label="`slide ${i + 1}`" :aria-current="i === active ? 'true' : undefined" @click="go(i)" />
@@ -105,7 +106,7 @@ function go(i: number) {
 
         <!-- SCROLL با متن چرخان (حروف جدا + rotate — پایدارتر از SVG textPath) -->
         <a href="#news"
-          class="scroll-btn absolute -bottom-1 end-2 z-20 flex h-24 w-24 items-center justify-center overflow-visible lg:bottom-8 lg:end-[-1.5rem]"
+          class="scroll-btn absolute -bottom-1 inset-e-2 z-20 flex h-24 w-24 items-center justify-center overflow-visible lg:bottom-8 lg:inset-e-[-1.5rem] transition transform duration-300 hover:scale-110"
           aria-label="Scroll">
           <div class="scroll-btn__ring pointer-events-none absolute inset-0" aria-hidden="true">
             <span v-for="(ch, i) in scrollChars" :key="i" class="scroll-btn__char"
@@ -121,7 +122,7 @@ function go(i: number) {
 
       <!-- چپ -->
       <div
-        class="relative z-20 mt-8 w-full max-w-md self-start lg:absolute lg:start-[4%] lg:top-[28%] lg:mt-0 lg:w-[min(36%,28rem)] xl:start-[6%]">
+        class="relative z-20 mt-8 w-full max-w-md self-start lg:absolute lg:inset-s-[4%] lg:top-[28%] lg:mt-0 lg:w-[min(36%,28rem)] xl:inset-s-[6%]">
         <motion.h1
           class="font-display text-[clamp(2.75rem,7vw,5.85rem)] font-medium leading-[0.92] tracking-[0.04em] text-[#3d3426]"
           :initial="reduce ? false : { opacity: 0, y: 24 }" :animate="{ opacity: 1, y: 0 }"
@@ -129,7 +130,7 @@ function go(i: number) {
           LUMINA<br />CLINIC
         </motion.h1>
 
-        <motion.p class="mt-5 max-w-[17rem] text-[13.5px] leading-7 text-[#5c5346] sm:text-[14.5px] sm:leading-8"
+        <motion.p class="mt-5 max-w-68 text-[13.5px] leading-7 text-[#5c5346] sm:text-[14.5px] sm:leading-8"
           :initial="reduce ? false : { opacity: 0 }" :animate="{ opacity: 1 }"
           :transition="{ delay: 0.2, duration: 0.7 }">
           <template v-if="locale === 'fa'">
@@ -145,7 +146,7 @@ function go(i: number) {
         </motion.p>
 
         <motion.aside
-          class="mt-7 flex max-w-[17.5rem] items-start gap-3 rounded-2xl bg-[#faedcd]/80 p-3.5 shadow-[0_12px_32px_-20px_rgba(61,52,38,0.3)] backdrop-blur-sm lg:mt-10"
+          class="mt-7 flex max-w-70 items-start gap-3 rounded-2xl bg-[#faedcd]/80 p-3.5 shadow-[0_12px_32px_-20px_rgba(61,52,38,0.3)] backdrop-blur-sm lg:mt-10"
           :initial="reduce ? false : { opacity: 0, y: 14 }" :animate="{ opacity: 1, y: 0 }"
           :transition="{ delay: 0.4, duration: 0.7 }">
           <span
@@ -167,10 +168,10 @@ function go(i: number) {
 
       <!-- راست -->
       <div
-        class="relative z-20 mt-6 hidden w-full max-w-[15rem] self-end lg:absolute lg:end-[8%] lg:top-[34%] lg:mt-0 lg:block xl:end-[10%]">
+        class="relative z-20 mt-6 hidden w-full max-w-60 self-end lg:absolute lg:inset-e-[8%] lg:top-[34%] lg:mt-0 lg:block xl:inset-e-[10%]">
         <motion.div :initial="reduce ? false : { opacity: 0, x: 16 }" :animate="{ opacity: 1, x: 0 }"
           :transition="{ delay: 0.3, duration: 0.8 }">
-          <svg class="mb-5 h-[4.5rem] w-[7.5rem] text-[#3d3426]/75" viewBox="0 0 140 80" fill="none" aria-hidden="true">
+          <svg class="mb-5 h-18 w-30 text-[#3d3426]/75" viewBox="0 0 140 80" fill="none" aria-hidden="true">
             <path d="M12 52c22-8 34-28 40-46 10 16 26 34 58 42-26 4-48 10-62 22-8-10-20-14-36-18z" stroke="currentColor"
               stroke-width="1.35" stroke-linejoin="round" />
             <path d="M52 22c8 10 12 20 14 32" stroke="currentColor" stroke-width="1.2" />
