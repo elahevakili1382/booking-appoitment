@@ -13,6 +13,15 @@ export default defineNuxtConfig({
     '/account/**': { ssr: false },
     '/login': { ssr: false },
     '/book': { ssr: false },
+    // پاسخ‌های خصوصی هرگز در cache عمومی (CDN/proxy) ذخیره نشوند
+    '/api/auth/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/dashboard': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/customers/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/bookings/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/reports/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/account/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/admin/**': { headers: { 'cache-control': 'private, no-store' } },
+    '/api/settings/**': { headers: { 'cache-control': 'private, no-store' } },
   },
 
   dir: {
@@ -117,11 +126,15 @@ app: {
     dbPath: '',
     sessionSecret: 'lumina-dev-secret-change-me',
     zarinpalMerchantId: 'test',
+    // ورود نمایشی فقط‌خواندنی: فقط سمت سرور و بدون مقدار پیش‌فرض امن‌نبودن.
+    // NUXT_DEMO_ENABLED=true و NUXT_DEMO_SESSION_SECRET (حداقل ۳۲ نویسه) هر دو لازم‌اند؛ وگرنه ورود دمو بسته است.
+    demoEnabled: false,
+    demoSessionSecret: '',
     public: {
       appName: 'Lumina Clinic',
       // فقط توسعه؛ در production سرور بدون توجه به این مقدار mock را رد می‌کند
       otpMock: process.env.NODE_ENV !== 'production',
-      // ورود نمایشی فقط‌خواندنی؛ فقط با NUXT_PUBLIC_DEMO=true روشن می‌شود (پیش‌فرض خاموش)
+      // فقط برای نمایش دکمهٔ «ورود نمایشی» در رابط. اجازهٔ ورود را سرور مستقل با demoEnabled/demoSessionSecret می‌دهد.
       demo: false,
     },
   },

@@ -5,15 +5,18 @@ export const OPS_ROLES = ['admin', 'receptionist']
 
 export function getSessionUser(event: Parameters<typeof getCookie>[0]) {
   const token = getCookie(event, 'lumina_session')
-  if (!token) return null
-  const db = getDb()
-  const row = db
-    .prepare(
-      `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
+  if (token) {
+    const db = getDb()
+    const row = db
+      .prepare(
+        `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token = ? AND s.expires_at > ?`,
-    )
-    .get(token, new Date().toISOString()) as Record<string, unknown> | undefined
-  return row || null
+      )
+      .get(token, new Date().toISOString()) as Record<string, unknown> | undefined
+    if (row) return row
+  }
+  // فقط اگر کاربر واقعی نبود: نشست نمایشی فقط‌خواندنی که middleware/demo-session.ts تأیید کرده است.
+  return (event.context as { demoUser?: Record<string, unknown> }).demoUser ?? null
 }
 
 export function requireUser(event: Parameters<typeof getCookie>[0], roles?: string[]) {
