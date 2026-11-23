@@ -1,5 +1,16 @@
 <script setup lang="ts">
-const cases = [
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+
+interface CaseItem {
+    id: string
+    treatment: string
+    title: string
+    description: string
+    risk: string
+    img: string
+}
+
+const cases: CaseItem[] = [
     {
         id: '01',
         treatment: 'فیلر لب',
@@ -26,132 +37,204 @@ const cases = [
     },
 ]
 
-const trackRef = ref<HTMLElement | null>(null)
-const cardRefs = ref<HTMLElement[]>([])
+const autoplay = true
 const activeIndex = ref(0)
+const containerWidth = ref(1200)
+const stageRef = ref<HTMLElement | null>(null)
+let autoplayTimer: ReturnType<typeof setInterval> | null = null
 
-let observer: IntersectionObserver | null = null
-// وضعیت کشیدن با ماوس
-let dragging = false
-let startX = 0
-let startScroll = 0
+const total = computed(() => cases.length)
+const activeCase = computed<CaseItem>(() => cases[activeIndex.value] ?? cases[0]!)
+
+function calculateGap(width: number) {
+    const minWidth = 768
+    const maxWidth = 1400
+    const minGap = 48
+    const maxGap = 86
+    if (width <= minWidth) return minGap
+    if (width >= maxWidth) return maxGap
+    return minGap + (maxGap - minGap) * ((width - minWidth) / (maxWidth - minWidth))
+}
+
+function stopAutoplay() {
+    if (autoplayTimer) {
+        clearInterval(autoplayTimer)
+        autoplayTimer = null
+    }
+}
+
+function startAutoplay() {
+    stopAutoplay()
+    if (!autoplay || total.value <= 1) return
+    autoplayTimer = setInterval(() => {
+        activeIndex.value = (activeIndex.value + 1) % total.value
+    }, 5000)
+}
+
+function next() {
+    activeIndex.value = (activeIndex.value + 1) % total.value
+    startAutoplay()
+}
+
+function prev() {
+    activeIndex.value = (activeIndex.value - 1 + total.value) % total.value
+    startAutoplay()
+}
+
+function goTo(index: number) {
+    activeIndex.value = index
+    startAutoplay()
+}
+
+function getCardStyle(index: number) {
+    const gap = calculateGap(containerWidth.value)
+    const liftY = gap * 0.45
+    const isActive = index === activeIndex.value
+    const isPrev = (activeIndex.value - 1 + total.value) % total.value === index
+    const isNext = (activeIndex.value + 1) % total.value === index
+
+    if (isActive) {
+        return {
+            zIndex: 30,
+            opacity: 1,
+            pointerEvents: 'auto' as const,
+            transform: 'translate3d(0px, 0px, 0px) scale(1) rotateY(0deg)',
+        }
+    }
+    if (isPrev) {
+        return {
+            zIndex: 20,
+            opacity: 0.92,
+            pointerEvents: 'auto' as const,
+            transform: `translate3d(-${gap}px, -${liftY}px, 0px) scale(0.86) rotateY(14deg)`,
+        }
+    }
+    if (isNext) {
+        return {
+            zIndex: 20,
+            opacity: 0.92,
+            pointerEvents: 'auto' as const,
+            transform: `translate3d(${gap}px, -${liftY}px, 0px) scale(0.86) rotateY(-14deg)`,
+        }
+    }
+
+    return {
+        zIndex: 10,
+        opacity: 0,
+        pointerEvents: 'none' as const,
+        transform: 'translate3d(0px, 20px, 0px) scale(0.8) rotateY(0deg)',
+    }
+}
+
+function handleResize() {
+    if (stageRef.value) {
+        containerWidth.value = stageRef.value.offsetWidth
+    }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'ArrowRight') prev()
+    if (e.key === 'ArrowLeft') next()
+}
 
 onMounted(() => {
-    if (!trackRef.value) return
-
-    observer = new IntersectionObserver(
-        (entries) => {
-            const visible = entries.filter((e) => e.isIntersecting)
-            if (visible.length === 0) return
-            const top = visible.reduce((a, b) => (a.intersectionRatio > b.intersectionRatio ? a : b))
-            const index = cardRefs.value.indexOf(top.target as HTMLElement)
-            if (index !== -1) activeIndex.value = index
-        },
-        { root: trackRef.value, threshold: 0.6 },
-    )
-    cardRefs.value.forEach((el) => observer?.observe(el))
+    handleResize()
+    startAutoplay()
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('keydown', handleKeydown)
 })
 
 onBeforeUnmount(() => {
-    observer?.disconnect()
+    stopAutoplay()
+    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('keydown', handleKeydown)
 })
-
-function goTo(index: number) {
-    const el = cardRefs.value[index]
-    if (!el) return
-    el.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
-}
-function prev() {
-    goTo(Math.max(0, activeIndex.value - 1))
-}
-function next() {
-    goTo(Math.min(cases.length - 1, activeIndex.value + 1))
-}
-
-// فقط برای ماوس: کشیدن دستی نوار اسکرول
-function onPointerDown(e: PointerEvent) {
-    if (e.pointerType !== 'mouse' || !trackRef.value) return
-    dragging = true
-    startX = e.clientX
-    startScroll = trackRef.value.scrollLeft
-    trackRef.value.setPointerCapture(e.pointerId)
-}
-function onPointerMove(e: PointerEvent) {
-    if (!dragging || !trackRef.value) return
-    trackRef.value.scrollLeft = startScroll - (e.clientX - startX)
-}
-function onPointerUp() {
-    dragging = false
-}
 </script>
 
 <template>
-    <section id="case-results" class="w-full bg-white px-page py-16 md:py-24">
-        <div class="mx-auto max-w-7xl">
+    <section id="case-results" class="w-full overflow-x-clip bg-white px-page py-16 md:py-24">
+        <div class="mx-auto max-w-6xl">
             <!-- هدر -->
-            <div class="flex flex-wrap items-end justify-between gap-6">
-                <div>
-                    <p class="font-display text-sm tracking-[0.4em] text-muted">RESULTS</p>
-                    <h2 class="mt-3 font-display text-[clamp(1.5rem,2.8vw,2.25rem)] font-bold text-ink">
-                        نمونه نتایج درمان
-                    </h2>
-                </div>
-
-                <!-- فلش‌های ناوبری با SVG خام، بدون وابستگی به آیکون -->
-                <div class="flex items-center gap-2">
-                    <button type="button"
-                        class="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/40 text-ink transition-colors hover:bg-surface-container-low disabled:opacity-30"
-                        :disabled="activeIndex === 0" @click="prev">
-                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 6l6 6-6 6" />
-                        </svg>
-                    </button>
-                    <button type="button"
-                        class="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/40 text-ink transition-colors hover:bg-surface-container-low disabled:opacity-30"
-                        :disabled="activeIndex === cases.length - 1" @click="next">
-                        <svg viewBox="0 0 24 24" class="h-4 w-4 rotate-180" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 6l6 6-6 6" />
-                        </svg>
-                    </button>
-                </div>
+            <div class="text-center md:text-start">
+                <p class="font-display text-sm tracking-[0.4em] text-muted">RESULTS</p>
+                <h2 class="mt-3 font-display text-[clamp(1.5rem,2.8vw,2.25rem)] font-bold text-ink">
+                    نمونه نتایج درمان
+                </h2>
             </div>
 
-            <!-- نوار اسکرول افقی: هم با انگشت، هم با کشیدن ماوس -->
-            <div ref="trackRef"
-                class="no-scrollbar mt-10 flex cursor-grab select-none snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 active:cursor-grabbing"
-                @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp"
-                @pointerleave="onPointerUp">
-                <article v-for="c in cases" :key="c.id" ref="cardRefs"
-                    class="w-[80%] shrink-0 snap-start sm:w-[45%] md:w-[31%]">
-                    <div class="relative aspect-[4/3] overflow-hidden rounded-2xl sm:aspect-[5/4]">
-                        <img :src="c.img" :alt="`قبل و بعد ${c.treatment}`" class="h-full w-full object-cover"
+            <!-- بدنه اصلی -->
+            <div class="mt-12 grid items-center gap-12 md:grid-cols-2 md:gap-14">
+                <!-- استیج کارت‌های سه‌بعدی -->
+                <div ref="stageRef"
+                    class="relative mx-auto flex h-80 w-full max-w-lg items-center justify-center sm:h-96"
+                    style="perspective: 1000px">
+                    <div v-for="(item, index) in cases" :key="item.id" role="button" tabindex="0"
+                        :aria-label="`مشاهده ${item.treatment}`"
+                        class="absolute h-72 w-60 cursor-pointer overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface shadow-[0_14px_34px_rgba(0,0,0,0.16)] transition-all duration-700 ease-[cubic-bezier(0.4,2,0.3,1)] will-change-transform sm:h-84 sm:w-72"
+                        :style="getCardStyle(index)" @click="goTo(index)" @keydown.enter="goTo(index)">
+                        <img :src="item.img" :alt="`قبل و بعد ${item.treatment}`" class="h-full w-full object-cover"
                             loading="lazy" draggable="false" />
                         <span
-                            class="absolute bottom-2 start-2 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white">قبل
-                            و بعد</span>
+                            class="absolute bottom-3 inset-s-3 rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur-xs">
+                            قبل و بعد
+                        </span>
                     </div>
+                </div>
 
-                    <p class="mt-4 text-[11px] font-semibold tracking-wide text-primary">No.{{ c.id }} — {{ c.treatment
-                        }}</p>
-                    <h3 class="mt-1 text-[15px] font-bold leading-7 text-ink">{{ c.title }}</h3>
-                    <p class="mt-2 text-[13px] leading-7 text-muted">{{ c.description }}</p>
-                    <p class="mt-3 text-[12px] text-muted">
-                        <span class="font-semibold text-ink">احتمال عوارض: </span>{{ c.risk }}
-                    </p>
-                </article>
+                <!-- محتوای متنی و کنترل‌ها -->
+                <div class="flex flex-col justify-between text-center md:text-start">
+                    <Transition name="case-fade" mode="out-in">
+                        <div :key="activeCase.id">
+                            <p class="text-xs font-bold tracking-wider text-primary">
+                                No.{{ activeCase.id }} — {{ activeCase.treatment }}
+                            </p>
+                            <h3 class="mt-2 font-display text-xl font-bold leading-8 text-ink sm:text-2xl">
+                                {{ activeCase.title }}
+                            </h3>
+                            <p class="mx-auto mt-3 max-w-md text-[14px] leading-8 text-muted md:mx-0">
+                                {{ activeCase.description }}
+                            </p>
+                            <p
+                                class="mx-auto mt-4 inline-block rounded-xl bg-surface-container-low px-4 py-2.5 text-[12.5px] text-muted md:mx-0">
+                                <span class="font-bold text-ink">احتمال عوارض: </span>
+                                {{ activeCase.risk }}
+                            </p>
+                        </div>
+                    </Transition>
+
+                    <!-- دکمه‌های قبلی/بعدی و نقطه‌های نشانگر -->
+                    <div class="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
+                        <div class="flex items-center gap-3">
+                            <button type="button" aria-label="نتیجه قبلی"
+                                class="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white transition-colors duration-300 hover:bg-primary"
+                                @click="prev">
+                                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button type="button" aria-label="نتیجه بعدی"
+                                class="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white transition-colors duration-300 hover:bg-primary"
+                                @click="next">
+                                <svg viewBox="0 0 24 24" class="h-4 w-4 rotate-180" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button v-for="(item, idx) in cases" :key="item.id" type="button"
+                                :aria-label="`رفتن به مورد ${idx + 1}`"
+                                class="h-2.5 rounded-full transition-all duration-300"
+                                :class="idx === activeIndex ? 'w-7 bg-primary' : 'w-2.5 bg-ink/20 hover:bg-ink/40'"
+                                @click="goTo(idx)" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- نقطه‌های پیشرفت -->
-            <div class="mt-6 flex justify-center gap-2">
-                <button v-for="(c, i) in cases" :key="c.id" type="button"
-                    class="h-2 rounded-full transition-all duration-300"
-                    :class="i === activeIndex ? 'w-6 bg-primary' : 'w-2 bg-outline-variant/50 hover:bg-primary/50'"
-                    :aria-label="`کارت ${i + 1}`" @click="goTo(i)" />
-            </div>
-
-            <p class="mt-10 text-center text-[11px] leading-6 text-muted/70">
+            <p class="mt-12 text-center text-[11px] leading-6 text-muted/70">
                 تصاویر این بخش جنبه‌ی نمایشی دارند و برای نشان‌دادن طراحی صفحه استفاده شده‌اند؛ محتوای واقعی باید از سوی
                 کلینیک و با رضایت بیمار تأمین شود.
             </p>
@@ -160,12 +243,18 @@ function onPointerUp() {
 </template>
 
 <style scoped>
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
+.case-fade-enter-active,
+.case-fade-leave-active {
+    transition: opacity 0.28s ease, transform 0.28s ease;
 }
 
-.no-scrollbar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+.case-fade-enter-from {
+    opacity: 0;
+    transform: translateY(12px);
+}
+
+.case-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-12px);
 }
 </style>

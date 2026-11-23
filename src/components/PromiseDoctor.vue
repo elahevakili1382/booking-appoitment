@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-// import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -22,9 +22,8 @@ onMounted(() => {
 
     mm = gsap.matchMedia()
 
-    // فقط دسکتاپ و فقط اگر کاربر «کاهش حرکت» رو روشن نکرده
     mm.add(
-        '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
+        '(prefers-reduced-motion: no-preference)',
         () => {
             const tl = gsap.timeline({
                 scrollTrigger: {
@@ -37,17 +36,14 @@ onMounted(() => {
                 },
             })
 
-            // ۱) کارت‌های تعهدات یکی‌یکی بالا میان
-            tl.from('[data-card]', { y: 60, opacity: 0, stagger: 0.2, duration: 1 })
+            tl.from('[data-card]', { y: 40, opacity: 0, stagger: 0.2, duration: 1 })
 
-            // ۲) پنل تعهدات می‌ره و محو و تار می‌شه
             tl.to(
                 promisePanel.value,
                 { xPercent: -25, opacity: 0, filter: 'blur(10px)', duration: 1.2 },
                 '+=0.8',
             )
 
-            // ۳) پنل دکتر از سمت راست میاد (هم‌زمان با ۰.۳ ثانیه تاخیر)
             tl.fromTo(
                 doctorPanel.value,
                 { xPercent: 25, opacity: 0, filter: 'blur(10px)' },
@@ -65,40 +61,61 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <section ref="root" class="relative w-full overflow-hidden bg-[#fefae0] lg:h-screen">
-        <!-- عکس ثابت سمت چپ -->
-        <div class="relative h-[60vh] w-full lg:absolute lg:inset-y-0 lg:left-0 lg:h-full lg:w-1/2">
+    <div class="mx-auto mt-10 mb-6 max-w-2xl px-page text-center sm:mt-14 sm:mb-8">
+        <!-- برچسب ظریف بالا (اختیاری) -->
+        <p class="font-display text-xs tracking-[0.35em] text-muted sm:text-sm">
+            PROMISE
+        </p>
+
+        <!-- خط کوتاه ظریف زیر برچسب -->
+        <div class="mx-auto mt-2.5 h-px w-10 bg-ink/35" />
+
+        <!-- تیتر اصلی درشت و پررنگ مثل تصویر -->
+        <h2 class="mt-4 font-display text-[clamp(1.6rem,3.5vw,2.4rem)] font-bold leading-[1.5] text-ink">
+            تعهد کلینیک
+        </h2>
+    </div>
+
+    <!-- بخش اصلی پارالاکس -->
+    <section ref="root" class="relative h-screen w-full overflow-hidden bg-[#fefae0]">
+        <!-- عکس پس‌زمینه/سمت چپ در همه سایزها -->
+        <div class="relative h-[38vh] w-full sm:h-[45vh] lg:absolute lg:inset-y-0 lg:left-0 lg:h-full lg:w-1/2">
             <NuxtImg src="/doctors/doctor.jpg" alt="پزشک کلینیک لومینا" class="h-full w-full object-cover" format="webp"
                 loading="lazy" />
+            <div
+                class="pointer-events-none absolute inset-x-0 top-0 h-16 bg-linear-to-b from-[#fefae0] to-transparent" />
             <!-- محو شدن لبه‌ی عکس توی پس‌زمینه -->
-            <div class="absolute inset-0 bg-linear-to-r from-transparent via-transparent to-[#fefae0]" />
+            <div
+                class="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#fefae0] lg:bg-linear-to-r" />
         </div>
 
-        <!-- ناحیه‌ی محتوا: دو پنل روی هم (فقط دسکتاپ) -->
-        <div class="relative z-10 px-page py-12 lg:ml-auto lg:grid lg:h-full lg:w-1/2 lg:items-center lg:py-0">
+        <!-- ناحیه‌ی محتوا: دو پنل روی هم در همه سایزها -->
+        <div
+            class="relative z-10 grid h-[62vh] items-center overflow-hidden px-page py-6 sm:h-[55vh] lg:ml-auto lg:h-full lg:w-1/2 lg:overflow-visible lg:py-0">
             <!-- پنل ۱: تعهدات -->
-            <div ref="promisePanel" class="lg:col-start-1 lg:row-start-1">
-                <p class="text-center font-display tracking-[0.3em] text-muted">PROMISE</p>
-                <h2 class="mt-4 text-center font-display text-3xl font-bold text-ink">
-                    در مشاوره به شما قول می‌دهیم
-                </h2>
-                <div class="mt-10 grid gap-4 sm:grid-cols-2">
+            <div ref="promisePanel" class="col-start-1 row-start-1">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <article v-for="p in promises" :key="p.title" data-card
-                        class="rounded-2xl bg-white/70 p-6 text-center shadow-[0_12px_32px_-20px_rgba(61,52,38,0.3)] backdrop-blur-sm">
-                        <h3 class="text-lg font-bold text-ink">{{ p.title }}</h3>
-                        <p class="mt-3 text-[14px] leading-8 text-muted">{{ p.text }}</p>
+                        class="rounded-2xl bg-white/70 p-3.5 text-center shadow-[0_12px_32px_-20px_rgba(61,52,38,0.3)] backdrop-blur-sm sm:p-6">
+                        <h3 class="text-sm font-bold text-ink sm:text-lg">{{ p.title }}</h3>
+                        <p class="mt-1.5 text-xs leading-5 text-muted sm:mt-3 sm:text-[14px] sm:leading-8">
+                            {{ p.text }}
+                        </p>
                     </article>
                 </div>
             </div>
 
             <!-- پنل ۲: دکتر -->
-            <div ref="doctorPanel" class="mt-16 lg:col-start-1 lg:row-start-1 lg:mt-0">
-                <span class="inline-block rounded-sm border border-ink/30 px-4 py-6 text-lg text-ink">مدیر کلینیک</span>
-                <h2 class="mt-6 font-display text-4xl font-bold text-ink">دکتر نام نمونه</h2>
-                <p class="mt-4 text-[15px] leading-8 text-muted">
+            <div ref="doctorPanel" class="col-start-1 row-start-1">
+                <span
+                    class="inline-block rounded-sm border border-ink/30 px-3 py-2 text-sm text-ink sm:px-4 sm:py-6 sm:text-lg">
+                    مدیر کلینیک
+                </span>
+                <h3 class="mt-3 font-display text-2xl font-bold text-ink sm:mt-6 sm:text-4xl">دکتر نام نمونه</h3>
+                <p class="mt-2 text-xs leading-6 text-muted sm:mt-4 sm:text-[15px] sm:leading-8">
                     متخصص پوست و زیبایی با تمرکز بر نتایج طبیعی و ظریف.
                 </p>
-                <ul class="mt-6 space-y-3 text-[14px] leading-7 text-ink">
+                <ul class="mt-4 space-y-2 text-xs leading-6 text-ink sm:mt-6 sm:space-y-3 sm:text-[14px] sm:leading-7">
                     <li>✓ سال‌ها تجربه‌ی مدیریت کلینیک زیبایی</li>
                     <li>✓ آموزش‌دهنده‌ی پزشکان و پرستاران</li>
                     <li>✓ تخصص در لیفت، فیلر و جوانسازی پوست</li>

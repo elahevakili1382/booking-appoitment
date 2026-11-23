@@ -23,16 +23,16 @@ useSmoothScroll()
       <HomeNews />
       <HomeMessage />
       <MessageEllipse />
+
+      <LazyPromiseDoctor hydrate-on-visible />
+      <LazyReasonStory hydrate-on-visible />
+      <LazyFirstVisit hydrate-on-visible />
+      <LazyServicesSection hydrate-on-visible />
+      <LazyGallerySection hydrate-on-visible />
+      <LazyCaseResultSection hydrate-on-visible />
+      <LazyHomeBlog hydrate-on-visible />
+      <LazyFinalCta hydrate-on-visible />
     </div>
 
-
-    <LazyPromiseDoctor hydrate-on-visible />
-    <LazyReasonStory hydrate-on-visible />
-    <LazyFirstVisit hydrate-on-visible />
-    <LazyServicesSection hydrate-on-visible />
-    <LazyGallerySection hydrate-on-visible />
-    <LazyCaseResultSection hydrate-on-visible />
-    <LazyHomeBlog hydrate-on-visible />
-    <LazyFinalCta hydrate-on-visible />
   </div>
 </template>

@@ -25,7 +25,7 @@ const reducedMotion = usePreferredReducedMotion()
       :transition="{ duration: 0.35 }"
       class="mx-auto flex w-full max-w-5xl flex-col rounded-3xl border border-white/70 bg-white shadow-xl lg:flex-row">
       <BookingStepper :steps="b.labels.steps" :step="b.step" :completed="!!b.booking" :busy="b.submitting"
-        :aria-label="b.labels.step" :format-number="b.number" @select="b.goStep" />
+        :ariaLabel="b.labels.step" :format-number="b.number" @select="b.goStep" />
 
       <div class="flex min-w-0 flex-1 flex-col">
         <BookingSuccess v-if="b.booking" :code="b.booking.code" :summary="b.savedSummary" :labels="b.labels"
